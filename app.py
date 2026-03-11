@@ -38,7 +38,7 @@ def processar_arquivo():
     extensao = os.path.splitext(caminho_entrada)[1].lower()
     tabela = None
     pasta_destino = obter_pasta_atual()
-    caminho_saida = os.path.join(pasta_destino, 'dashboard_dados_formatados.xlsx')
+    caminho_saida = os.path.join(pasta_destino, 'dados_formatados.xlsx')
 
     try:
         if extensao == '.slk':
@@ -66,16 +66,13 @@ def processar_arquivo():
             return
         
         if tabela is not None:
-            tabela.columns = [consertar_texto(col) for col in tabela.columns]
-            tabela = tabela.map(consertar_texto)
 
-            colunas_de_data = [
-                'Data de abertura', 'Última atualização', 'Tempo para solução', 
-                'Data da solução', 'Aprovação - Data da validação'
-            ]
-            for col in colunas_de_data:
-                if col in tabela.columns:
-                    tabela[col] = pd.to_datetime(tabela[col], dayfirst=True, errors='coerce')
+            tabela.columns = [consertar_texto(col) for col in tabela.columns]
+
+            colunas_de_texto = tabela.select_dtypes(include=['object', 'string', 'str']).columns
+
+            for col in colunas_de_texto:
+                tabela[col] = tabela[col].map(consertar_texto)
 
             with pd.ExcelWriter(caminho_saida, engine='openpyxl') as writer:
                 tabela.to_excel(writer, index=False, sheet_name='Dados GLPI')
