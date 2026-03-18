@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+
+:root {
+    --background: #DFE8F5;
+    --button: #146EF5;
+    --text: #080807;
+    --style: #F5F5F5;
+    --gray-text: #969696;
+    --error: #FE0000;
+    --warning: #f3be20;
+    --font-size: 16px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "SN Pro", sans-serif;
+}
+
+.grayText {
+    color: var(--gray-text);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: var(--background);
+    gap: 20rem;
+    scroll-behavior: smooth;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    justify-content: center;
+    gap: 3rem;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 2.5rem;
+}
+
+.mainDiv {
+    display: flex;
+    justify-content: center;
+    width: 30rem;
+    padding: 2rem;
+    border-radius: 1rem;
+    background-color: var(--style);
+}
+
+.label-file-upload {
+    border: 0.2rem dashed #ccc;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 2rem 3rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+#upload-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 3rem 0 3.5rem 0;
+    color: var(--button);
+    padding: .9rem;
+    border-radius: 50%;
+    background-color: var(--background);
+    scale: 3;
+}
+
+.submit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem 0;
+    border: none;
+    background-color: var(--button);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 0.8rem;
+    cursor: pointer;
+    transition: ease 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #0c62e2;
+    box-shadow: 0 0 10px 10px var(--background);
+}
+
+.toastContainer {
+    display: none;
+    position: fixed;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    gap: .9rem;
+    right: 1rem;
+    bottom: 1.5rem;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background-color: var(--style);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    animation: entradaESaidaSuave 5s ease-in-out forwards;
+}
+
+@keyframes entradaESaidaSuave {
+    0% { opacity: 0; transform: translateX(20px); }
+    15% { opacity: 1; transform: translateX(0); }
+    85% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(20px); }
+}
