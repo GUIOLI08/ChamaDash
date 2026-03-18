@@ -38,6 +38,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     }
 
+    function createPieChart(canvasId, data, title) {
+        const canvasElement = document.getElementById(canvasId);
+        if (canvasElement) {
+            const ctx = canvasElement.getContext('2d');
+            
+            if (window.meuGraficoSLA) {
+                window.meuGraficoSLA.destroy();
+            }
+
+            window.meuGraficoSLA = new Chart(ctx, {
+                type: 'pie', 
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: ['#4CAF50', '#F44336']
+                    }]
+                },
+                options: {
+                    plugins: { title: { display: true, text: title } }
+                }
+            });
+        } else {
+            showToast('error', 'Erro ao gerar o gráfico!');
+        }
+    }
+
     fileInput.addEventListener('change', () => {
         if (fileInput.files.length > 0) {
             selectedArchive.textContent = `Arquivo selecionado: ${fileInput.files[0].name}`;
@@ -73,23 +100,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Erro do servidor ao processar o arquivo.');
             }
 
-            const blob = await response.blob();
+            const resultado = await response.json();
             
             fileInput.value = "";
             selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
             
             showToast('success', 'Arquivo formatado com sucesso!');
 
-            const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
-            a.href = url;
-            a.download = 'dashboard.xlsx'; 
+            a.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + resultado.arquivo_excel;
+            a.download = 'chamadash_dashboard.xlsx'; 
             
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+            
+            createPieChart('graficoTipo', resultado.dados.tipos_gerais, 'Distribuição por Tipo');
+            createPieChart('graficoIncidentes', resultado.dados.inc_prio, 'Incidentes por Prioridade');
+            createPieChart('graficoSLA', resultado.dados.sla, 'Visão Geral de SLA');
 
         } catch (error) {
             console.error('Error processing the file:', error);

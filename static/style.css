@@ -137,6 +137,11 @@ form {
     animation: entradaESaidaSuave 5s ease-in-out forwards;
 }
 
+.grafico{
+    width: 100px;
+    height: 100px;
+}
+
 @keyframes entradaESaidaSuave {
     0% { opacity: 0; transform: translateX(20px); }
     15% { opacity: 1; transform: translateX(0); }
