@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
     const selectedArchive = document.getElementById('selected_archive');
@@ -51,15 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = fileInput.files[0];
 
         if (!file) {
-            showToast('warning', 'Por favor, selecione um arquivo válido primeiro.');
+            showToast('warning', 'Por favor, selecione um arquivo válido.');
             return;
         }
 
         const formData = new FormData();
         formData.append('archive', file);
 
-        const originalBtnText = submitBtn.textContent;
-        submitBtn.textContent = 'Processando...';
+        submitBtn.textContent = '';
+        submitBtn.classList.add('loading');
         submitBtn.disabled = true;
 
         try {
@@ -94,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error processing the file:', error);
             showToast('error', 'Erro ao processar o arquivo!');
         } finally {
-            submitBtn.textContent = originalBtnText;
+            submitBtn.classList.remove('loading');
+            submitBtn.textContent = "Enviar";
             submitBtn.disabled = false;
         }
     });
