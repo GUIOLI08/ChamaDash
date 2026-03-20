@@ -159,7 +159,7 @@ form {
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem 2rem;
-    background: white;
+    background: var(--style);
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     margin-bottom: 1rem;
@@ -222,7 +222,7 @@ form {
 }
 
 .chart-card {
-    background-color: white;
+    background-color: var(--style);
     padding: 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);

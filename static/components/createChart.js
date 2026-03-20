@@ -1,4 +1,4 @@
-export function createChart(type, canvasId, data, isScrollable = false) {
+export function createChart(type, canvasId, data, color, isScrollable = false) {
     const canvasElement = document.getElementById(canvasId);
     if (!canvasElement) return;
 
@@ -17,9 +17,9 @@ export function createChart(type, canvasId, data, isScrollable = false) {
 
     const ctx = canvasElement.getContext("2d");
     const COLORS = [
-        "#146EF5",
-        "#FF4E00",
-        "#F4C10B",
+        "#4F81BD",
+        "#C0504D",
+        "#9BBB59",
         "#11B23E",
         "#9E1FF3",
         "#E91E63",
@@ -29,8 +29,7 @@ export function createChart(type, canvasId, data, isScrollable = false) {
         "#607D8B",
     ];
 
-    let bgColors = type === "pie" ? COLORS : "#146EF5";
-    if (canvasId === "graficoSLA") bgColors = ["#11B23E", "#FE0000"];
+    let bgColors = type === "pie" ? COLORS : color;
 
     new Chart(ctx, {
         type: type,

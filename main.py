@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 import pandas as pd
 import io
+import re
+import html
 import base64
 
 from clean_and_fix_text import clean_and_fix_text
@@ -75,15 +77,18 @@ async def upload_file(archive: UploadFile = File(...)):
             
         elif name.endswith(".csv"):
             print("Reading .csv file...")
+            # Tentativa mais robusta de leitura de CSV exportado de sistemas padrão BR
             try:
-                texto_csv = content.decode("utf-8-sig")
-            except UnicodeDecodeError:
-                texto_csv = content.decode("latin-1", errors="ignore")
-                
-            primeira_linha = texto_csv.split('\n')[0]
-            separador = ';' if primeira_linha.count(';') > primeira_linha.count(',') else ','
-            
-            tabela = pd.read_csv(io.StringIO(texto_csv), sep=separador, on_bad_lines="skip")
+                tabela = pd.read_csv(io.BytesIO(content), sep=";", encoding="latin-1", on_bad_lines="skip")
+                # Se leu apenas 1 coluna, é provável que o separador real seja vírgula
+                if len(tabela.columns) < 2:
+                    tabela = pd.read_csv(io.BytesIO(content), sep=",", encoding="latin-1", on_bad_lines="skip")
+            except Exception:
+                try:
+                    tabela = pd.read_csv(io.BytesIO(content), sep=";", encoding="utf-8", on_bad_lines="skip")
+                except Exception:
+                    # Último recurso usando detecção automática do pandas
+                    tabela = pd.read_csv(io.BytesIO(content), sep=None, engine="python", encoding="latin-1", on_bad_lines="skip")
         else:
             raise HTTPException(status_code=400, detail="Invalid file type")
 
@@ -215,74 +220,24 @@ async def upload_file(archive: UploadFile = File(...)):
                 fmt_cabecalho_top,
             )
 
-            aba_dash.merge_range(
-                linha_inicio,
-                col_matriz,
-                linha_inicio,
-                col_matriz + 1,
-                "Chamados",
-                fmt_cabecalho_top,
-            )
-            aba_dash.merge_range(
-                linha_inicio,
-                col_matriz + 2,
-                linha_inicio,
-                col_matriz + 4,
-                "Baixa",
-                fmt_cabecalho_top,
-            )
-            aba_dash.merge_range(
-                linha_inicio,
-                col_matriz + 5,
-                linha_inicio,
-                col_matriz + 7,
-                "Média",
-                fmt_cabecalho_top,
-            )
-            aba_dash.merge_range(
-                linha_inicio,
-                col_matriz + 8,
-                linha_inicio,
-                col_matriz + 10,
-                "Alta",
-                fmt_cabecalho_top,
-            )
-            aba_dash.merge_range(
-                linha_inicio,
-                col_matriz + 11,
-                linha_inicio,
-                col_matriz + 12,
-                "Total",
-                fmt_cabecalho_top,
-            )
+            aba_dash.merge_range(linha_inicio, col_matriz, linha_inicio, col_matriz + 1, "Chamados", fmt_cabecalho_top)
+            aba_dash.merge_range(linha_inicio, col_matriz + 2, linha_inicio, col_matriz + 4, "Baixa", fmt_cabecalho_top)
+            aba_dash.merge_range(linha_inicio, col_matriz + 5, linha_inicio, col_matriz + 7, "Média", fmt_cabecalho_top)
+            aba_dash.merge_range(linha_inicio, col_matriz + 8, linha_inicio, col_matriz + 10, "Alta", fmt_cabecalho_top)
+            aba_dash.merge_range(linha_inicio, col_matriz + 11, linha_inicio, col_matriz + 12, "Total", fmt_cabecalho_top)
 
             linha_sub = linha_inicio + 1
             colunas_sub = [
-                "Tipos",
-                "Qtd",
-                "No Prazo",
-                "Fora",
-                "ANS",
-                "No Prazo",
-                "Fora",
-                "ANS",
-                "No Prazo",
-                "Fora",
-                "ANS",
-                "No Prazo",
-                "Fora",
+                "Tipos", "Qtd", "No Prazo", "Fora", "ANS", "No Prazo", "Fora", "ANS",
+                "No Prazo", "Fora", "ANS", "No Prazo", "Fora",
             ]
             for c_idx, nome_col in enumerate(colunas_sub):
-                aba_dash.write(
-                    linha_sub, col_matriz + c_idx, nome_col, fmt_cabecalho_sub
-                )
+                aba_dash.write(linha_sub, col_matriz + c_idx, nome_col, fmt_cabecalho_sub)
 
             def agrupar_prioridade(p):
                 p = str(p).lower()
-                if "baixa" in p or "baixo" in p:
-                    return "Baixa"
-                if "alta" in p or "alto" in p:
-                    return "Alta"
+                if "baixa" in p or "baixo" in p: return "Baixa"
+                if "alta" in p or "alto" in p: return "Alta"
                 return "Média"
 
             if "Prioridade" in tabela.columns:
@@ -304,13 +259,7 @@ async def upload_file(archive: UploadFile = File(...)):
             ]
             linha_dados = linha_sub + 1
             totais_gerais = {
-                "qtd": 0,
-                "baixa_no": 0,
-                "baixa_fora": 0,
-                "media_no": 0,
-                "media_fora": 0,
-                "alta_no": 0,
-                "alta_fora": 0,
+                "qtd": 0, "baixa_no": 0, "baixa_fora": 0, "media_no": 0, "media_fora": 0, "alta_no": 0, "alta_fora": 0,
             }
 
             tipos_gerais = {}
@@ -318,8 +267,8 @@ async def upload_file(archive: UploadFile = File(...)):
             req_prio = {}
             top_cat = {}
             top_setor = {}
-            todos_tec = {}
-            sla_final = {}
+            grupos_dict = {}
+            sla_dict = {}
 
             for tipo_glpi, tipo_nome in tipos_para_tabela:
                 if col_tipo and col_sla:
@@ -353,19 +302,7 @@ async def upload_file(archive: UploadFile = File(...)):
                     totais_gerais["alta_fora"] += a_fora
 
                     dados_linha = [
-                        tipo_nome,
-                        qtd_total,
-                        b_no,
-                        b_fora,
-                        b_ans,
-                        m_no,
-                        m_fora,
-                        m_ans,
-                        a_no,
-                        a_fora,
-                        a_ans,
-                        t_no,
-                        t_fora,
+                        tipo_nome, qtd_total, b_no, b_fora, b_ans, m_no, m_fora, m_ans, a_no, a_fora, a_ans, t_no, t_fora,
                     ]
                     for i, valor in enumerate(dados_linha):
                         col_atual = col_matriz + i
@@ -373,10 +310,7 @@ async def upload_file(archive: UploadFile = File(...)):
                             aba_dash.write(linha_dados, col_atual, valor, fmt_cel_esq)
                         elif i in [4, 7, 10]:
                             aba_dash.write(
-                                linha_dados,
-                                col_atual,
-                                valor,
-                                fmt_ans if valor >= 0.8 else fmt_ans_ruim,
+                                linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim,
                             )
                         else:
                             aba_dash.write(
@@ -398,19 +332,8 @@ async def upload_file(archive: UploadFile = File(...)):
             t_a_ans = (t_a_no / (t_a_no + t_a_fora)) if (t_a_no + t_a_fora) > 0 else 1.0
 
             linha_total = [
-                "Total",
-                totais_gerais["qtd"],
-                t_b_no,
-                t_b_fora,
-                t_b_ans,
-                t_m_no,
-                t_m_fora,
-                t_m_ans,
-                t_a_no,
-                t_a_fora,
-                t_a_ans,
-                t_no_total,
-                t_fora_total,
+                "Total", totais_gerais["qtd"], t_b_no, t_b_fora, t_b_ans, t_m_no, t_m_fora, t_m_ans,
+                t_a_no, t_a_fora, t_a_ans, t_no_total, t_fora_total,
             ]
             for i, valor in enumerate(linha_total):
                 col_atual = col_matriz + i
@@ -418,10 +341,7 @@ async def upload_file(archive: UploadFile = File(...)):
                     aba_dash.write(linha_dados, col_atual, valor, fmt_cabecalho_sub)
                 elif i in [4, 7, 10]:
                     aba_dash.write(
-                        linha_dados,
-                        col_atual,
-                        valor,
-                        fmt_ans if valor >= 0.8 else fmt_ans_ruim,
+                        linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim,
                     )
                 else:
                     aba_dash.write(linha_dados, col_atual, valor, fmt_cabecalho_sub)
@@ -446,9 +366,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 tipos_gerais = counts.to_dict()
 
             if col_tipo and "Prio_Agrupada" in tabela.columns:
-                counts_inc = tabela[tabela[col_tipo] == "Incidente"][
-                    "Prio_Agrupada"
-                ].value_counts()
+                counts_inc = tabela[tabela[col_tipo] == "Incidente"]["Prio_Agrupada"].value_counts()
                 aba_motor.write_column("D1", counts_inc.index)
                 aba_motor.write_column("E1", counts_inc.values)
                 g_inc = workbook.add_chart({"type": "pie"})
@@ -466,9 +384,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 aba_dash.insert_chart("H14", g_inc, {"x_offset": 5})
                 inc_prio = counts_inc.to_dict()
 
-                counts_req = tabela[tabela[col_tipo] == "Requisição"][
-                    "Prio_Agrupada"
-                ].value_counts()
+                counts_req = tabela[tabela[col_tipo] == "Requisição"]["Prio_Agrupada"].value_counts()
                 aba_motor.write_column("G1", counts_req.index)
                 aba_motor.write_column("H1", counts_req.values)
                 g_req = workbook.add_chart({"type": "pie"})
@@ -487,32 +403,16 @@ async def upload_file(archive: UploadFile = File(...)):
                 req_prio = counts_req.to_dict()
 
             def desenhar_tabela(
-                aba,
-                linha_ini,
-                col_ini,
-                col_span,
-                titulo_geral,
-                titulo_col1,
-                serie_dados,
+                aba, linha_ini, col_ini, col_span, titulo_geral, titulo_col1, serie_dados,
             ):
                 col_fim_nome = col_ini + col_span - 1
                 col_qtd = col_ini + col_span
                 aba.merge_range(
-                    linha_ini,
-                    col_ini,
-                    linha_ini,
-                    col_qtd,
-                    titulo_geral,
-                    fmt_cabecalho_top,
+                    linha_ini, col_ini, linha_ini, col_qtd, titulo_geral, fmt_cabecalho_top,
                 )
                 if col_span > 1:
                     aba.merge_range(
-                        linha_ini + 1,
-                        col_ini,
-                        linha_ini + 1,
-                        col_fim_nome,
-                        titulo_col1,
-                        fmt_cabecalho_sub,
+                        linha_ini + 1, col_ini, linha_ini + 1, col_fim_nome, titulo_col1, fmt_cabecalho_sub,
                     )
                 else:
                     aba.write(linha_ini + 1, col_ini, titulo_col1, fmt_cabecalho_sub)
@@ -521,12 +421,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 for index, valor in serie_dados.items():
                     if col_span > 1:
                         aba.merge_range(
-                            l_atual,
-                            col_ini,
-                            l_atual,
-                            col_fim_nome,
-                            str(index),
-                            fmt_cel_esq,
+                            l_atual, col_ini, l_atual, col_fim_nome, str(index), fmt_cel_esq,
                         )
                     else:
                         aba.write(l_atual, col_ini, str(index), fmt_cel_esq)
@@ -567,11 +462,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 g_setor.add_series(
                     {
                         "categories": [
-                            "Motor_Oculto",
-                            0,
-                            12,
-                            len(setor_counts) - 1,
-                            12,
+                            "Motor_Oculto", 0, 12, len(setor_counts) - 1, 12,
                         ],
                         "values": ["Motor_Oculto", 0, 13, len(setor_counts) - 1, 13],
                         "fill": {"color": "#4F81BD"},
@@ -607,6 +498,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 g_grupo.set_style(10); g_grupo.set_chartarea({'border': {'none': True}})
                 g_grupo.set_size({'width': 360, 'height': 260})
                 aba_dash.insert_chart(f'L{linha_s3}', g_grupo, {'x_offset': 15, 'y_offset': 5})
+                grupos_dict = grupos.to_dict()
 
             if col_sla:
                 sla = tabela[col_sla].value_counts()
@@ -617,20 +509,8 @@ async def upload_file(archive: UploadFile = File(...)):
                 g_sla.set_style(10); g_sla.set_chartarea({'border': {'none': True}})
                 g_sla.set_size({'width': 360, 'height': 260})
                 aba_dash.insert_chart(f'Q{linha_s3}', g_sla, {'x_offset': 15, 'y_offset': 5})
-            
-            col_tecnico = (
-                "Atribuído para - Técnico"
-                if "Atribuído para - Técnico" in tabela.columns
-                else None
-            )
-            if col_tecnico:
-                todos_tec = tabela[col_tecnico].value_counts().to_dict()
+                sla_dict = sla.to_dict()
 
-            sla_final = {
-                "No Prazo": int(t_no_total),
-                "Fora do Prazo": int(t_fora_total),
-            }
-        
         output.seek(0)
 
         excel_b64 = base64.b64encode(output.getvalue()).decode("utf-8")
@@ -641,26 +521,24 @@ async def upload_file(archive: UploadFile = File(...)):
             "req_prio": {str(k): int(v) for k, v in req_prio.items()},
             "top_categorias": {str(k): int(v) for k, v in top_cat.items()},
             "top_setores": {str(k): int(v) for k, v in top_setor.items()},
-            "todos_tec": {str(k): int(v) for k, v in todos_tec.items()},
-            "sla": sla_final,
+            "grupos_tecnicos": {str(k): int(v) for k, v in grupos_dict.items()},
+            "sla_geral": {str(k): int(v) for k, v in sla_dict.items()}
         }
 
         return JSONResponse(
             content={
-                "mensagem": "Chamadash generated successfully!",
+                "mensagem": "Chamadash gerado com sucesso!",
                 "dados": dados_dashboard,
                 "arquivo_excel": excel_b64,
             }
         )
 
     except Exception as e:
-        print(f"Processing error: {e}")
+        print(f"Erro de processamento: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-
 
 if __name__ == "__main__":
     import os
-
     port = int(os.environ.get("PORT", 8000))
-    print(f"ChamaDash running on port {port}")
+    print(f"ChamaDash rodando na porta {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
