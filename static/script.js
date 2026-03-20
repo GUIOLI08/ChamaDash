@@ -1,130 +1,112 @@
-document.addEventListener('DOMContentLoaded', () => {
+import { showToast } from "./components/toast.js";
+import { createChart } from "./components/createChart.js";
 
-    const form = document.getElementById('uploadForm');
-    const fileInput = document.getElementById('fileInput');
-    const selectedArchive = document.getElementById('selected_archive');
-    const toastContainer = document.querySelector('.toastContainer');
-    const toastAdvise = document.getElementById('toastAdvise');
-    const toastIcon = document.getElementById('icon');
-    const submitBtn = document.querySelector('.submit-button');
+document.addEventListener("DOMContentLoaded", () => {
 
-    const TOAST_TYPES = {
-        success: { icon: 'fa-check', color: "green" },
-        warning: { icon: 'fa-warning', color: 'orange' },
-        error:   { icon: 'fa-xmark', color: 'red' }
-    };
+    const mainDiv = document.querySelectorAll(".mainDiv");
+    const form = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const selectedArchive = document.getElementById("selected_archive");
+    const submitBtn = document.querySelector(".submit-button");
+    const dashboard = document.getElementById("painelDashboard");
+    const btnDownloadExcel = document.getElementById("btnDownloadExcel");
+    const btnGenReport = document.getElementById("btnGenReport");
+    const btnNewFile = document.getElementById("btnNewFile");
 
-    let toastTimeout;
-
-    function showToast(type, message) {
-        if (toastTimeout) clearTimeout(toastTimeout);
-        
-        toastContainer.style.animation = 'none';
-        toastContainer.offsetHeight; 
-        toastContainer.style.animation = '';
-
-        const config = TOAST_TYPES[type] || TOAST_TYPES.success;
-        
-        toastIcon.className = 'fa-solid'; 
-        toastIcon.classList.add(config.icon);
-        toastIcon.style.color = config.color;
-        
-        toastContainer.style.borderRight = `1.5rem solid ${config.color}`;
-        toastAdvise.textContent = message;
-        toastContainer.style.display = "flex";
-
-        toastTimeout = setTimeout(() => {
-            toastContainer.style.display = "none";
-        }, 5000);
-    }
-
-    function createPieChart(canvasId, data, title) {
-        const canvasElement = document.getElementById(canvasId);
-        if (canvasElement) {
-            const ctx = canvasElement.getContext('2d');
-            
-            if (window.meuGraficoSLA) {
-                window.meuGraficoSLA.destroy();
-            }
-
-            window.meuGraficoSLA = new Chart(ctx, {
-                type: 'pie', 
-                data: {
-                    labels: Object.keys(data),
-                    datasets: [{
-                        data: Object.values(data),
-                        backgroundColor: ['#4CAF50', '#F44336']
-                    }]
-                },
-                options: {
-                    plugins: { title: { display: true, text: title } }
-                }
-            });
-        } else {
-            showToast('error', 'Erro ao gerar o gráfico!');
-        }
-    }
-
-    fileInput.addEventListener('change', () => {
+    fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
-            selectedArchive.textContent = `Arquivo selecionado: ${fileInput.files[0].name}`;
+            selectedArchive.textContent = `Arquivo: ${fileInput.files[0].name}`;
         } else {
             selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
         }
     });
 
-    form.addEventListener('submit', async (event) => {
+    form.addEventListener("submit", async (event) => {
+
         event.preventDefault();
 
         const file = fileInput.files[0];
 
         if (!file) {
-            showToast('warning', 'Por favor, selecione um arquivo válido.');
+            showToast("warning", "Por favor, selecione um arquivo válido.");
             return;
         }
 
         const formData = new FormData();
-        formData.append('archive', file);
+        formData.append("archive", file);
 
-        submitBtn.textContent = '';
-        submitBtn.classList.add('loading');
+        submitBtn.textContent = "";
+        submitBtn.classList.add("loading");
         submitBtn.disabled = true;
 
         try {
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData,
             });
 
-            if (!response.ok) {
-                throw new Error('Erro do servidor ao processar o arquivo.');
-            }
+            if (!response.ok) throw new Error("Erro do servidor.");
 
             const resultado = await response.json();
-            
+
+            if (resultado.dados) {
+                mainDiv.forEach(div => div.style.display = "none");
+                createChart("pie", "graficoTipo", resultado.dados.tipos_gerais);
+                createChart("pie", "graficoIncidentes", resultado.dados.inc_prio);
+                createChart("pie", "graficoSolicitacoes", resultado.dados.req_prio);
+                createChart("bar", "graficoCategorias", resultado.dados.top_categorias);
+                createChart("bar", "graficoSetores", resultado.dados.top_setores);
+                createChart("bar", "graficoTecnicos", resultado.dados.todos_tec, true);
+                createChart("pie", "graficoSLA", resultado.dados.sla);
+                dashboard.classList.add("active");
+
+            }
+
             fileInput.value = "";
             selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
-            
-            showToast('success', 'Arquivo formatado com sucesso!');
+            showToast("success", "ChamaDash gerado com sucesso!");
 
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + resultado.arquivo_excel;
-            a.download = 'chamadash_dashboard.xlsx'; 
-            
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            createPieChart('graficoTipo', resultado.dados.tipos_gerais, 'Distribuição por Tipo');
-            createPieChart('graficoIncidentes', resultado.dados.inc_prio, 'Incidentes por Prioridade');
-            createPieChart('graficoSLA', resultado.dados.sla, 'Visão Geral de SLA');
+            btnNewFile.addEventListener("click", () => {
+                if (dashboard) {
+                    dashboard.classList.remove("active");
+                }
+                for(let id in Chart.instances){
+                    Chart.instances[id].destroy();
+                }
+                mainDiv.forEach(div => div.style.display = "flex");
+            })
 
+            btnDownloadExcel.addEventListener("click", () => {
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href =
+                    "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," +
+                    resultado.arquivo_excel;
+                a.download = "chamadash_dashboard.xlsx";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
+            btnGenReport.addEventListener("click", async () => {
+                return showToast('warning', 'Em desenvolvimento...')
+                /*
+                    const a = document.createElement("a");
+                    a.style.display = "none";
+                    a.href =
+                        "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," +
+                        resultado.arquivo_excel;
+                    a.download = "chamadash_dashboard.xlsx";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                */
+            });
         } catch (error) {
-            console.error('Error processing the file:', error);
-            showToast('error', 'Erro ao processar o arquivo!');
+            console.error(error);
+            showToast("error", "Erro ao processar o arquivo!");
         } finally {
-            submitBtn.classList.remove('loading');
+            submitBtn.classList.remove("loading");
             submitBtn.textContent = "Enviar";
             submitBtn.disabled = false;
         }

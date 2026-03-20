@@ -1,70 +1,22 @@
 from fastapi import FastAPI, File, UploadFile, Request, HTTPException
-from fastapi.responses import Response, HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import pandas as pd
 import io
-import re
-import html
 import base64
+
+from clean_and_fix_text import clean_and_fix_text
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-
-def clean_and_fix_text(text):
-    if pd.isna(text):
-        return text
-
-    text = str(text)
-
-    try:
-        text = text.encode("latin-1").decode("utf-8")
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        correcoes = {
-            "Ãš": "Ú",
-            "Ã§": "ç",
-            "Ã£": "ã",
-            "Ã©": "é",
-            "Ã\xad": "í",
-            "Ãª": "ê",
-            "Ã¡": "á",
-            "Ãµ": "õ",
-            "Ã³": "ó",
-            "Ã¢": "â",
-            "Ã‡": "Ç",
-            "Ãƒ": "Ã",
-            "Ã•": "Õ",
-            "Ã‰": "É",
-            "Ã ": "À",
-            "Ã\x8d": "Í",
-            "Ã“": "Ó",
-            "Ã‚": "Â",
-            "ÃŠ": "Ê",
-            "Ã\x87": "Ç",
-            "Ã\x83": "Ã",
-            "\x87": "Ç",
-            "\x83": "Ã",
-        }
-        for wrong, right in correcoes.items():
-            text = text.replace(wrong, right)
-
-    text = html.unescape(text)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-
-    text = text.strip('"').strip("'")
-
-    return text
-
-
 @app.get("/", response_class=HTMLResponse)
 async def initial_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
 
 @app.post("/upload")
 async def upload_file(archive: UploadFile = File(...)):

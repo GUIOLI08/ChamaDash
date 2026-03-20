@@ -7,9 +7,10 @@
     <title>Netra | ChamaDash</title>
     <link rel="shortcut icon" href="static/images/faviconNetra.ico" type="image/x-icon">
     <link rel="stylesheet" href="static/style.css">
-    <script src="static/script.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script type="module" src="static/script.js"></script>
 </head>
 
 <body>
@@ -20,26 +21,74 @@
                     <input type="file" name="archive" id="fileInput">
                     <i class="fa-solid fa-upload" id="upload-icon"></i>
                     <span>
-                        Segure e solte arquivos ou <b style="color: var(--button); text-decoration: underline 2px">Procure</b>.
+                        Segure e solte arquivos ou <b
+                            style="color: var(--button); text-decoration: underline 2px">Procure</b>.
                     </span>
                     <span class="grayText" id="selected_archive">Formatos suportados: .slk, .csv, .xlsx</span>
                 </label>
                 <button type="submit" class="submit-button">Enviar</button>
             </form>
         </div>
+
+        <div class="dashboardContainer" id="painelDashboard">
+            <div class="dashboard-header">
+                <div class="header-info">
+                    <h1 class="dashboard-title">ChamaDash</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-new" id="btnNewFile">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        Novo Arquivo
+                    </button>
+                    <button class="btn-download" id="btnDownloadExcel">
+                        <i class="fa-solid fa-download"></i>
+                        Baixar Excel
+                    </button>
+                    <button class="btn-new" id="btnGenReport">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        Gerar Relatório
+                    </button>
+                </div>
+            </div>
+            <div class="chart-card span-4">
+                <h3 class="chart-title">⚡ Distribuição por Tipo</h3>
+                <div class="canvas-wrapper"><canvas id="graficoTipo"></canvas></div>
+            </div>
+            <div class="chart-card span-4">
+                <h3 class="chart-title">⚡ Incidentes por Prioridade</h3>
+                <div class="canvas-wrapper"><canvas id="graficoIncidentes"></canvas></div>
+            </div>
+            <div class="chart-card span-4">
+                <h3 class="chart-title">⚡ Solicitações por Prioridade</h3>
+                <div class="canvas-wrapper"><canvas id="graficoSolicitacoes"></canvas></div>
+            </div>
+
+            <div class="chart-card span-6">
+                <h3 class="chart-title">🏆 Top 10 Categorias</h3>
+                <div class="canvas-wrapper"><canvas id="graficoCategorias"></canvas></div>
+            </div>
+            <div class="chart-card span-6">
+                <h3 class="chart-title">🏢 Top 10 Setores</h3>
+                <div class="canvas-wrapper"><canvas id="graficoSetores"></canvas></div>
+            </div>
+
+            <div class="chart-card span-8">
+                <h3 class="chart-title">🛠️ Técnicos</h3>
+                <div class="canvas-wrapper scrollable-y">
+                    <canvas id="graficoTecnicos"></canvas>
+                </div>
+            </div>
+            <div class="chart-card span-4">
+                <h3 class="chart-title">⏱️ Desempenho de SLA</h3>
+                <div class="canvas-wrapper"><canvas id="graficoSLA"></canvas></div>
+            </div>
+
+        </div>
     </main>
+
     <div class="toastContainer">
         <i class="fa-solid" id="icon"></i>
         <span id="toastAdvise"></span>
-    </div>
-    <div class="dashboardContainer">
-        <canvas class="grafico" id="graficoTipo"></canvas>
-        <canvas class="grafico" id="graficoIncidentes"></canvas>
-        <canvas class="grafico" id="graficoSolicitacoes"></canvas>
-        <canvas class="grafico" id="graficoCategorias"></canvas>
-        <canvas class="grafico" id="graficoSetores"></canvas>
-        <canvas class="grafico" id="graficoTecnicos"></canvas>
-        <canvas class="grafico" id="graficoSLA"></canvas>
     </div>
 </body>
 
