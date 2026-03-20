@@ -26,10 +26,13 @@ async def upload_file(archive: UploadFile = File(...)):
         print(f"Reading file: {name}")
 
         if name.endswith(".xlsx"):
+            print("Reading .xlsx file...")
             tabela = pd.read_excel(io.BytesIO(content), engine="openpyxl")
         elif name.endswith(".xls"):
+            print("Reading .xls file...")
             tabela = pd.read_excel(io.BytesIO(content), engine="xlrd")
         elif name.endswith(".slk"):
+            print("Reading .slk file...")
             texto_slk = content.decode("latin-1", errors="ignore")
             dados_slk = {}
             linha_atual = 1
@@ -69,16 +72,26 @@ async def upload_file(archive: UploadFile = File(...)):
             )
             tabela = df_bruto.iloc[1:].copy()
             tabela.columns = df_bruto.iloc[0].values
+            
+        elif name.endswith(".csv"):
+            print("Reading .csv file...")
+            try:
+                texto_csv = content.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                texto_csv = content.decode("latin-1", errors="ignore")
+                
+            primeira_linha = texto_csv.split('\n')[0]
+            separador = ';' if primeira_linha.count(';') > primeira_linha.count(',') else ','
+            
+            tabela = pd.read_csv(io.StringIO(texto_csv), sep=separador, on_bad_lines="skip")
         else:
-            tabela = pd.read_csv(
-                io.BytesIO(content), sep=";", encoding="latin-1", on_bad_lines="skip"
-            )
+            raise HTTPException(status_code=400, detail="Invalid file type")
 
         print("Cleaning invalid characters and HTML tags...")
+        tabela.columns = [str(col) if pd.notna(col) else f"Coluna_Vazia_{i}" for i, col in enumerate(tabela.columns)]
         tabela.columns = [clean_and_fix_text(col) for col in tabela.columns]
-        colunas_de_texto = tabela.select_dtypes(
-            include=["object", "string", "str"]
-        ).columns
+        
+        colunas_de_texto = tabela.select_dtypes(include=["object", "string", "str"]).columns
         for col in colunas_de_texto:
             tabela[col] = tabela[col].apply(clean_and_fix_text)
 
@@ -101,7 +114,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 funcoes_de_agrupamento
             )
 
-        print("Building Premium Dashboard...")
+        print("Building Dashboard...")
         output = io.BytesIO()
 
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
