@@ -3,10 +3,17 @@ import html
 import pandas as pd
 
 def clean_and_fix_text(text):
-    if pd.isna(text):
-        return text
-    
+    try:
+        if text is None:
+            return ""
+        if pd.isna(text):
+            return ""
+    except (TypeError, ValueError):
+        pass
+
     text = str(text)
+    if text.strip() in ("", "nan", "None", "NaN", "NaT"):
+        return ""
 
     try:
         text = text.encode('latin-1').decode('utf-8')
@@ -21,10 +28,9 @@ def clean_and_fix_text(text):
         for wrong, right in corrections.items():
             text = text.replace(wrong, right)
 
-    text = html.unescape(text) 
-    text = re.sub(r'<[^>]+>', ' ', text) 
-    text = re.sub(r'\s+', ' ', text).strip() 
-
+    text = html.unescape(text)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
     text = text.strip('"').strip("'")
-        
+
     return text

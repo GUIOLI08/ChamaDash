@@ -5,9 +5,8 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 import pandas as pd
 import io
-import re
-import html
 import base64
+import traceback
 
 from clean_and_fix_text import clean_and_fix_text
 
@@ -77,28 +76,42 @@ async def upload_file(archive: UploadFile = File(...)):
             
         elif name.endswith(".csv"):
             print("Reading .csv file...")
-            # Tentativa mais robusta de leitura de CSV exportado de sistemas padrão BR
-            try:
-                tabela = pd.read_csv(io.BytesIO(content), sep=";", encoding="latin-1", on_bad_lines="skip")
-                # Se leu apenas 1 coluna, é provável que o separador real seja vírgula
-                if len(tabela.columns) < 2:
-                    tabela = pd.read_csv(io.BytesIO(content), sep=",", encoding="latin-1", on_bad_lines="skip")
-            except Exception:
-                try:
-                    tabela = pd.read_csv(io.BytesIO(content), sep=";", encoding="utf-8", on_bad_lines="skip")
-                except Exception:
-                    # Último recurso usando detecção automática do pandas
-                    tabela = pd.read_csv(io.BytesIO(content), sep=None, engine="python", encoding="latin-1", on_bad_lines="skip")
+            sucesso = False
+            encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']
+            separators = [';', ',', '\t', '|']
+            
+            for enc in encodings:
+                for sep in separators:
+                    try:
+                        tabela_temp = pd.read_csv(
+                            io.BytesIO(content), sep=sep, encoding=enc,
+                            on_bad_lines="skip", dtype=str, keep_default_na=False
+                        )
+                        if len(tabela_temp.columns) > 3:
+                            tabela = tabela_temp
+                            sucesso = True
+                            print(f"CSV read successfully! Encoding: {enc} | Separator: '{sep}'")
+                            break
+                    except Exception:
+                        continue
+                if sucesso:
+                    break
+                    
+            if not sucesso:
+                raise ValueError("The CSV file seems to be empty or corrupted.")
         else:
             raise HTTPException(status_code=400, detail="Invalid file type")
 
         print("Cleaning invalid characters and HTML tags...")
-        tabela.columns = [str(col) if pd.notna(col) else f"Coluna_Vazia_{i}" for i, col in enumerate(tabela.columns)]
-        tabela.columns = [clean_and_fix_text(col) for col in tabela.columns]
+        print(f"  Columns: {list(tabela.columns)}")
+        print(f"  Dtypes: {tabela.dtypes.to_dict()}")
+        tabela.columns = [str(col) for col in tabela.columns]
+        tabela.columns = [clean_and_fix_text(col) or f"Coluna_Vazia_{i}" for i, col in enumerate(tabela.columns)]
         
-        colunas_de_texto = tabela.select_dtypes(include=["object", "string", "str"]).columns
+        colunas_de_texto = tabela.select_dtypes(include=["object", "string"]).columns
+        print(f"  Text columns: {list(colunas_de_texto)}")
         for col in colunas_de_texto:
-            tabela[col] = tabela[col].apply(clean_and_fix_text)
+            tabela[col] = tabela[col].astype(str).apply(clean_and_fix_text)
 
         print("Merging duplicate tickets...")
         coluna_id = "ID"
@@ -110,7 +123,7 @@ async def upload_file(archive: UploadFile = File(...)):
                     continue
                 elif str(tabela[col].dtype) in ["object", "string"]:
                     funcoes_de_agrupamento[col] = lambda x: "\n---\n".join(
-                        pd.Series(x).dropna().astype(str).unique()
+                        [v for v in pd.Series(x).astype(str).unique() if v not in ("", "nan", "None")]
                     )
                 else:
                     funcoes_de_agrupamento[col] = "first"
@@ -133,7 +146,7 @@ async def upload_file(archive: UploadFile = File(...)):
             for col_idx, col_name in enumerate(tabela.columns):
                 if not tabela.empty:
                     tamanho_maximo = max(
-                        tabela[col_name].astype(str).map(len).max(), len(str(col_name))
+                        tabela[col_name].astype(str).map(len).fillna(0).max(), len(str(col_name))
                     )
                 else:
                     tamanho_maximo = len(str(col_name))
@@ -534,6 +547,7 @@ async def upload_file(archive: UploadFile = File(...)):
         )
 
     except Exception as e:
+        traceback.print_exc()
         print(f"Erro de processamento: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
