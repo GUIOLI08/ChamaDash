@@ -1,5 +1,11 @@
 import { createChart } from "../components/createChart.js";
 
+/**
+ * Orchestrates the rendering of all dashboard charts.
+ * 
+ * @param {Object} resultado - The API response containing chart data.
+ * @param {Object} elements - The DOM element collection.
+ */
 export function renderDashboard(resultado, elements) {
     
     if(!resultado) return;

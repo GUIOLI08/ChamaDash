@@ -1,3 +1,6 @@
+/**
+ * Component to display toast notifications for user feedback.
+ */
 const toastContainer = document.querySelector(".toastContainer");
 const toastAdvise = document.getElementById("toastAdvise");
 const toastIcon = document.getElementById("icon");
@@ -9,6 +12,12 @@ const TOAST_TYPES = {
 };
 
 let toastTimeout;
+
+/**
+ * Shows a toast message with specified type and content.
+ * @param {string} type - 'success', 'warning', or 'error'.
+ * @param {string} message - The message text to display.
+ */
 
 export function showToast(type, message) {
     if (toastTimeout) clearTimeout(toastTimeout);
