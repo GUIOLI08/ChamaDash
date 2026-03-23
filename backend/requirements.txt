@@ -5,6 +5,6 @@ openpyxl
 xlsxwriter
 jinja2
 python-multipart
-google-generativeai
 matplotlib
 python-docx
+google-genai

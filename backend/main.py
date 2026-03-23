@@ -26,6 +26,11 @@ async def initial_page(request: Request):
 
 @app.post("/upload")
 async def upload_file(archive: UploadFile = File(...)):
+    """
+    Main entry point for file uploads.
+    Supports .xlsx, .xls, .slk, and .csv formats.
+    Performs data cleaning, merging, and generates both Excel and Word reports.
+    """
     try:
         name = archive.filename.lower()
         content = await archive.read()
@@ -157,6 +162,7 @@ async def upload_file(archive: UploadFile = File(...)):
             aba_motor = workbook.add_worksheet("Motor_Oculto")
             aba_motor.hide()
 
+            # Move Dashboard sheet to the first position
             workbook.worksheets_objs.insert(
                 0,
                 workbook.worksheets_objs.pop(workbook.worksheets_objs.index(aba_dash)),
@@ -210,8 +216,10 @@ async def upload_file(archive: UploadFile = File(...)):
 
             def agrupar_prioridade(p):
                 p = str(p).lower()
-                if "baixa" in p or "baixo" in p: return "Baixa"
-                if "alta" in p or "alto" in p: return "Alta"
+                if "baixa" in p or "baixo" in p:
+                    return "Baixa"
+                if "alta" in p or "alto" in p:
+                    return "Alta"
                 return "Média"
 
             if "Prioridade" in tabela.columns:
@@ -255,9 +263,12 @@ async def upload_file(archive: UploadFile = File(...)):
                     matriz_sla_dict[tipo_nome] = [qtd_total, b_no, b_fora, b_ans, m_no, m_fora, m_ans, a_no, a_fora, a_ans, t_no, t_fora]
                     for i, valor in enumerate(dados_linha):
                         col_atual = col_matriz + i
-                        if i == 0: aba_dash.write(linha_dados, col_atual, valor, fmt_cel_esq)
-                        elif i in [4, 7, 10]: aba_dash.write(linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
-                        else: aba_dash.write(linha_dados, col_atual, valor, fmt_cel_centro)
+                        if i == 0:
+                            aba_dash.write(linha_dados, col_atual, valor, fmt_cel_esq)
+                        elif i in [4, 7, 10]:
+                            aba_dash.write(linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
+                        else:
+                            aba_dash.write(linha_dados, col_atual, valor, fmt_cel_centro)
                     linha_dados += 1
 
             t_b_no = totais_gerais["baixa_no"]; t_b_fora = totais_gerais["baixa_fora"]
@@ -281,7 +292,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 elif i in [4, 7, 10]: aba_dash.write(linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
                 else: aba_dash.write(linha_dados, col_atual, valor, fmt_cabecalho_sub)
 
-            # --- GRÁFICOS NO EXCEL ---
+            # --- EXCEL CHARTS GENERATION ---
             if col_tipo:
                 counts = tabela[col_tipo].dropna().value_counts()
                 aba_motor.write_column("A1", counts.index); aba_motor.write_column("B1", counts.values)

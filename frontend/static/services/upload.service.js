@@ -10,8 +10,9 @@ export async function uploadArchive(formData) {
     });
 
     if (!response.ok) {
+        // Internal error message for developer debugging
         throw new Error("Server communication error.");
     }
 
-    return response.json();
+    return await response.json();
 }

@@ -4,8 +4,8 @@ from config.ia import CONFIG_IA
 
 def consult_ia(dados_resumo):
     """
-    Consults the AI provider to generate report introductions and data analysis.
-    If the API key is not configured, returns placeholder text.
+    Connects with the AI provider to generate report introductions and data analyses.
+    If the API key is not configured (placeholder value), returns preset static text.
     """
     if not CONFIG_IA["api_key"] or CONFIG_IA["api_key"] == "AIzaSyCpNMi0u5Zc1c7Bq6mL9fyAKtMzCR3Cmos":
         return {
@@ -38,9 +38,9 @@ def consult_ia(dados_resumo):
             
             raw_response = response.text
             
-            # Parse the AI response based on custom tags
-            intro = raw_response.split("[INTRODUCAO]")[1].split("[DADOS_GERAIS]")[0].strip() if "[INTRODUCAO]" in raw_response else "Erro ao gerar introdução."
-            data_analysis = raw_response.split("[DADOS_GERAIS]")[1].strip() if "[DADOS_GERAIS]" in raw_response else "Erro ao gerar análise."
+            # Parse the AI response using markers defined in the prompt
+            intro = raw_response.split("[INTRODUCAO]")[1].split("[DADOS_GERAIS]")[0].strip() if "[INTRODUCAO]" in raw_response else "Error generating introduction."
+            data_analysis = raw_response.split("[DADOS_GERAIS]")[1].strip() if "[DADOS_GERAIS]" in raw_response else "Error generating analysis."
             
             return {"introduction": intro, "data_analysis": data_analysis}
             

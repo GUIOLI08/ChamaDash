@@ -14,7 +14,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
     const fullLabels = Object.keys(data);
     const values = Object.values(data);
 
-    // Dynamic height adjustment for scrollable bar charts
+    // Dynamic height adjustment for scrollable bar charts to prevent overlapping
     if (isScrollable && type === "bar") {
         const minHeight = Math.max(320, fullLabels.length * 35);
         canvasElement.style.height = `${minHeight}px`;
@@ -22,7 +22,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
         canvasElement.style.height = "100%";
     }
 
-    // Cleanup existing chart instance before re-rendering
+    // Cleanup existing chart instance before re-rendering to avoid memory leaks or visual artifacts
     const existingChart = Chart.getChart(canvasId);
     if (existingChart) existingChart.destroy();
 
@@ -89,6 +89,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
                                 font: { size: 12, family: "'SN Pro', sans-serif" },
                                 callback: function (value) {
                                     let label = this.getLabelForValue(value);
+                                    // Truncate long labels for better readability
                                     return label.length > 22
                                         ? label.substring(0, 22) + "..."
                                         : label;
@@ -102,4 +103,4 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
                     },
         },
     });
-}
+}

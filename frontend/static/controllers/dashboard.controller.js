@@ -13,6 +13,7 @@ export async function handleSubmit(event, elements, setResultado) {
 
     const file = fileInput.files[0];
 
+    // User-facing validation
     if (!file) {
         showToast("warning", "Por favor, selecione um arquivo válido.");
         return;
@@ -21,6 +22,7 @@ export async function handleSubmit(event, elements, setResultado) {
     const formData = new FormData();
     formData.append("archive", file);
 
+    // Enter loading state
     submitBtn.textContent = "";
     submitBtn.classList.add("loading");
     submitBtn.disabled = true;
@@ -36,9 +38,12 @@ export async function handleSubmit(event, elements, setResultado) {
         
         showToast("success", "ChamaDash gerado com sucesso!");
     } catch (error) {
-        console.error("Error processing dashboard:", error);
+        // Log technical error for developers
+        console.error("Dashboard processing error:", error);
+        // Display user-friendly error in Portuguese
         showToast("error", "Erro ao processar o arquivo!");
     } finally {
+        // Reset loading state
         submitBtn.classList.remove("loading");
         submitBtn.textContent = "Enviar";
         submitBtn.disabled = false;
