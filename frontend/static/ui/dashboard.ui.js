@@ -12,8 +12,10 @@ export function renderDashboard(resultado, elements) {
 
     const { mainDiv, dashboard } = elements;
 
+    // Hide placeholder/initial views
     mainDiv.forEach(div => div.style.display = "none");
 
+    // Initialize all metrics charts
     createChart("pie", "graficoTipo", resultado.dados.tipos_gerais);
     createChart("pie", "graficoIncidentes", resultado.dados.inc_prio);
     createChart("pie", "graficoSolicitacoes", resultado.dados.req_prio);
@@ -22,5 +24,6 @@ export function renderDashboard(resultado, elements) {
     createChart("pie", "graficoTecnicos", resultado.dados.grupos_tecnicos);
     createChart("pie", "graficoSLA", resultado.dados.sla_geral);
 
+    // Show dashboard container
     dashboard.classList.add("active");
 }

@@ -1,11 +1,15 @@
 import { handleSubmit } from "./controllers/dashboard.controller.js";
 import { showToast } from "./components/toast.js";
 
-
+/**
+ * Main application entry point for the frontend.
+ * Orchestrates event listeners and DOM element management.
+ */
 document.addEventListener("DOMContentLoaded", () => {
 
     let resultadoAtual = null;
 
+    // Centralized DOM element references
     const elements = {
         mainDiv: document.querySelectorAll(".mainDiv"),
         form: document.getElementById("uploadForm"),
@@ -18,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnNewFile: document.getElementById("btnNewFile"),
     };
 
+    // Listen for file selection changes to update UI label
     elements.fileInput.addEventListener("change", () => {
         if (elements.fileInput.files.length > 0) {
             elements.selectedArchive.textContent =
@@ -28,17 +33,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Delegate form submission to controller
     elements.form.addEventListener("submit", (event) =>
         handleSubmit(event, elements, (resultado) => {
             resultadoAtual = resultado;
         })
     );
 
+    // Reset view for a new file upload
     elements.btnNewFile.addEventListener("click", () => {
         elements.dashboard.classList.remove("active");
         elements.fileInput.value = "";
         
         elements.selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
+        
+        // Ensure all chart instances are disposed to free resources
         for (let id in Chart.instances) {
             Chart.instances[id].destroy();
         }
@@ -46,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.mainDiv.forEach(div => div.style.display = "flex");
     });
 
+    // Handle Excel download blob
     elements.btnDownloadExcel.addEventListener("click", () => {
         if (!resultadoAtual) return;
 
@@ -61,16 +71,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.removeChild(a);
     });
 
+    // Handle Word Report download blob
     elements.btnGenReport.addEventListener("click", () => {
-
-        // Extra protection: ensure a result exists and contains a Word file
         if (!resultadoAtual || !resultadoAtual.arquivo_word) {
             showToast("error", "Nenhum relatório gerado.");
             return;
         }
 
         const date = new Date();
-        
         const a_word = document.createElement("a");
         a_word.style.display = "none";
         a_word.href = "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," + resultadoAtual.arquivo_word;

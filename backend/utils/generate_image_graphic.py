@@ -6,14 +6,14 @@ matplotlib.use('Agg')
 
 def generate_image_graphic(dados, titulo, tipo="bar"):
     """
-    Gera a imagem do gráfico.
-    Proporções mais 'panorâmicas' (achatadas) para economizar espaço vertical no Word.
+    Generates a chart image using Matplotlib.
+    Optimized for Word documents with wide, low aspect ratios to conserve vertical space.
     """
     if tipo == "pie":
-        # Antes era (3.5, 2.5). Agora é mais largo e mais baixo.
+        # Wide aspect ratio for better integration in text documents
         plt.figure(figsize=(4.5, 2.2)) 
     else:
-        # Gráfico de barras mais baixo também
+        # Bar charts also use a shallower height
         plt.figure(figsize=(6, 3.5)) 
     
     chaves = [str(k)[:25] + ('...' if len(str(k)) > 25 else '') for k in dados.keys()]
@@ -28,7 +28,7 @@ def generate_image_graphic(dados, titulo, tipo="bar"):
         
     elif tipo == "pie":
         wedges, texts, autotexts = plt.pie(valores, autopct='%1.0f%%', startangle=90, colors=cores, textprops=dict(color="w", weight="bold", fontname='Verdana', size=6))
-        # Ajustei o bbox_to_anchor para a legenda ficar mais coladinha na pizza e não gastar altura
+        # Positioning the legend closely below the chart to save vertical space
         plt.legend(wedges, chaves, loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=2, prop={'family': 'Verdana', 'size': 6})
         plt.title(titulo, pad=10, fontweight='bold', fontsize=8, fontname='Verdana')
     

@@ -15,7 +15,7 @@ from .add_paragraph import add_paragraph
 from .add_image_with_subtitle import add_image_with_subtitle
 
 def shade_cell(cell, fill_color):
-    """Injeta XML para pintar o fundo da célula da tabela."""
+    """Injects XML to set the background fill color of a table cell."""
     tcPr = cell._tc.get_or_add_tcPr()
     shd = OxmlElement('w:shd')
     shd.set(qn('w:val'), 'clear')
@@ -24,7 +24,7 @@ def shade_cell(cell, fill_color):
     tcPr.append(shd)
 
 def format_cell(cell, text, bold=False, color=None, font_size=7):
-    """Escreve na célula e centraliza o texto com fonte Verdana."""
+    """Writes text into a cell, centering it and applying Verdana styling."""
     cell.text = str(text)
     p = cell.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -35,6 +35,10 @@ def format_cell(cell, text, bold=False, color=None, font_size=7):
     if color: run.font.color.rgb = color
 
 def create_word_report(dados_dashboard):
+    """
+    Main function to construct the Word report.
+    Handles styles, footer generation, cover page, and all data sections.
+    """
     caminho_template = "template_netra.docx"
     doc = Document(caminho_template) if os.path.exists(caminho_template) else Document()
 
@@ -53,6 +57,7 @@ def create_word_report(dados_dashboard):
     ai_texts = consult_ia(dados_dashboard)
     current_date = datetime.datetime.now().strftime("%d/%m/%Y")
 
+    # Update Footer Information
     for section in doc.sections:
         for p in section.footer.paragraphs:
             if "TIC-RQ-28" in p.text or "Relatório" in p.text:
@@ -111,9 +116,9 @@ def create_word_report(dados_dashboard):
         
     doc.add_page_break()
 
-    # --- 1. INTRODUÇÃO ---
+    # --- 1. INTRODUCTION ---
     add_title(doc, '1. INTRODUÇÃO', 1)
-    add_paragraph(doc, 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.')
+    add_paragraph(doc, ai_texts.get('introduction', 'Standard introduction text.'))
 
     doc.add_page_break()
     
@@ -129,9 +134,6 @@ def create_word_report(dados_dashboard):
     
     cor_branca = RGBColor(255, 255, 255)
 
-    # Topos da Tabela
-    t_sla.cell(0,0).merge(t_sla.cell(0,12))
-    format_cell(t_sla.cell(0,0), "MATRIZ GERAL DE CHAMADOS E DESEMPENHO", bold=True, color=cor_branca, font_size=8)
     shade_cell(t_sla.cell(0,0), "244062")
 
     headers_r1 = [(0,1,"Chamados"), (2,4,"Baixa"), (5,7,"Média"), (8,10,"Alta"), (11,12,"Total")]
@@ -146,7 +148,7 @@ def create_word_report(dados_dashboard):
         format_cell(t_sla.cell(2, idx), h, bold=True, color=cor_branca, font_size=7)
         shade_cell(t_sla.cell(2, idx), "4F81BD")
 
-    # PREENCHIMENTO DOS DADOS REAIS
+    # Populate Table with Real Data
     matriz_sla = dados_dashboard.get("matriz_sla", {})
     tipos = ["Incidentes", "Solicitações", "Problemas", "Total"]
     
@@ -154,16 +156,18 @@ def create_word_report(dados_dashboard):
         is_bold = (r_idx == 6)
         format_cell(t_sla.cell(r_idx, 0), tipo, bold=is_bold, font_size=7)
         
-        # Puxa os dados que enviamos no main.py (ou coloca hífens se não existirem)
+        # Retrieve data sent from main.py (fallback to hyphens if missing)
         valores = matriz_sla.get(tipo, ["-"] * 12)
         
         for c_idx in range(1, 13):
             val = valores[c_idx - 1]
             
-            # As colunas de ANS (índices 4, 7, 10 na matriz do Word) precisam virar porcentagem
+            # Format SLA percentage columns (indices 4, 7, 10 in the Word matrix)
             if val != "-" and c_idx in [4, 7, 10]:
-                try: val_str = f"{float(val)*100:.0f}%"
-                except: val_str = str(val)
+                try:
+                    val_str = f"{float(val)*100:.0f}%"
+                except (ValueError, TypeError):
+                    val_str = str(val)
             else:
                 val_str = str(val)
                 
@@ -182,19 +186,21 @@ def create_word_report(dados_dashboard):
     add_title(doc, '3.1 DADOS GERAIS', 2)
     add_paragraph(doc, 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.')
     
-    # --- GRÁFICO 1 ---
+    # --- 3.1.1 General Chart for Call Types ---
     add_title(doc, '3.1.1 Percentual de chamados registrados por tipo', 3)
-    doc.paragraphs[-1].paragraph_format.keep_with_next = False # <-- O SEGREDO: Força o título a não "grudar" na imagem obrigatoriamente
+    # Ensure title does not necessarily stick to the image in an awkward way
+    doc.paragraphs[-1].paragraph_format.keep_with_next = False 
     
     if dados_dashboard.get('tipos_gerais'):
         img_tipos = generate_image_graphic(dados_dashboard['tipos_gerais'], 'Tipo de Chamado', 'pie')
         add_image_with_subtitle(doc, img_tipos, "Gráfico 1: Percentual por tipo de chamado", 3.2) 
-        doc.paragraphs[-2].paragraph_format.line_spacing = 1.0 # <-- Remove o espaçamento 1.5 que deforma o tamanho da imagem
+        # Reset line spacing to prevent image distortion
+        doc.paragraphs[-2].paragraph_format.line_spacing = 1.0 
         doc.paragraphs[-1].paragraph_format.keep_with_next = False
         
-    # --- GRÁFICO 2 ---
+    # --- 3.1.2 Priority Chart for Incidents and Requests ---
     add_title(doc, '3.1.2 Percentual de Incidentes e Solicitações de Serviços registradas por prioridade relatada', 3)
-    doc.paragraphs[-1].paragraph_format.keep_with_next = False # <-- Força o título a não grudar na imagem
+    doc.paragraphs[-1].paragraph_format.keep_with_next = False 
     
     if dados_dashboard.get('inc_prio'):
         img_inc = generate_image_graphic(dados_dashboard['inc_prio'], 'Incidentes por Prioridade', 'pie')
@@ -202,14 +208,14 @@ def create_word_report(dados_dashboard):
         doc.paragraphs[-2].paragraph_format.line_spacing = 1.0
         doc.paragraphs[-1].paragraph_format.keep_with_next = False 
         
-    # --- GRÁFICO 3 ---
+    # --- 3.1.2 Cont. (Requests) ---
     if dados_dashboard.get('req_prio'):
         img_req = generate_image_graphic(dados_dashboard['req_prio'], 'Solicitações por Prioridade', 'pie')
         add_image_with_subtitle(doc, img_req, "Gráfico 3: Solicitações por prioridade", 3.2)
         doc.paragraphs[-2].paragraph_format.line_spacing = 1.0
         doc.paragraphs[-1].paragraph_format.keep_with_next = False 
 
-    # --- GRÁFICO 4 (BARRAS) ---
+    # --- 3.1.3 Chart for Demanding Areas (Bar Chart) ---
     add_title(doc, '3.1.3 Atendimentos por área demandante', 3)
     doc.paragraphs[-1].paragraph_format.keep_with_next = False
     
@@ -246,15 +252,16 @@ def create_word_report(dados_dashboard):
         img_cat = generate_image_graphic(dados_dashboard['top_categorias'], 'Chamados por Categoria', 'bar')
         add_image_with_subtitle(doc, img_cat, "Gráfico 5: Chamados abertos por categoria", 4.5)
 
-    # --- 5. TENDÊNCIAS ---
+    # --- 5. TREND ANALYSIS ---
     add_title(doc, '5. ANÁLISE DE TENDÊNCIAS', 1)
     p_tendencia = doc.add_paragraph()
-    run_tend = p_tendencia.add_run('Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.')
+    run_tend = p_tendencia.add_run(ai_texts.get('data_analysis', 'Standard trend analysis.'))
     run_tend.font.name = 'Verdana'
     run_tend.font.size = Pt(9)
 
-    # --- 6. ANEXOS ---
+    # --- 6. ATTACHMENTS ---
     add_title(doc, 'Anexos', 1)
+    # Placeholder for manual evidence insertion
     add_paragraph(doc, 'Insira aqui evidências ou imagens complementares da Central Telefônica ou outros sistemas.')
 
     word_output = io.BytesIO()
