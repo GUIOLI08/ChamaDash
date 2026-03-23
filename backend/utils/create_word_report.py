@@ -184,7 +184,7 @@ def create_word_report(dados_dashboard):
     # --- 3. RESULTADOS APURADOS ---
     add_title(doc, '3. RESULTADOS APURADOS DOS SERVIÇOS', 1)
     add_title(doc, '3.1 DADOS GERAIS', 2)
-    add_paragraph(doc, 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.')
+    add_paragraph(doc, ai_texts.get('data_analysis', 'Standard data analysis text.'))
     
     # --- 3.1.1 General Chart for Call Types ---
     add_title(doc, '3.1.1 Percentual de chamados registrados por tipo', 3)
