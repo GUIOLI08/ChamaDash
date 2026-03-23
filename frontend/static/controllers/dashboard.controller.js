@@ -2,6 +2,10 @@ import { uploadArchive } from "../services/upload.service.js";
 import { showToast } from "../components/toast.js";
 import { renderDashboard } from "../ui/dashboard.ui.js";
 
+/**
+ * Handles the dashboard generation submission.
+ * Manages button loading state, file selection validation, and UI updates.
+ */
 export async function handleSubmit(event, elements, setResultado) {
     event.preventDefault();
 
@@ -29,10 +33,10 @@ export async function handleSubmit(event, elements, setResultado) {
         if (resultado.dados) {
             renderDashboard(resultado, elements);
         }
-
+        
         showToast("success", "ChamaDash gerado com sucesso!");
     } catch (error) {
-        console.error(error);
+        console.error("Error processing dashboard:", error);
         showToast("error", "Erro ao processar o arquivo!");
     } finally {
         submitBtn.classList.remove("loading");

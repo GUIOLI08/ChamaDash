@@ -36,7 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     elements.btnNewFile.addEventListener("click", () => {
         elements.dashboard.classList.remove("active");
-
+        elements.fileInput.value = "";
+        
+        elements.selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
         for (let id in Chart.instances) {
             Chart.instances[id].destroy();
         }
@@ -60,6 +62,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     elements.btnGenReport.addEventListener("click", () => {
-        showToast("warning", "Em desenvolvimento...");
+
+        // Extra protection: ensure a result exists and contains a Word file
+        if (!resultadoAtual || !resultadoAtual.arquivo_word) {
+            showToast("error", "Nenhum relatório gerado.");
+            return;
+        }
+
+        const date = new Date();
+        
+        const a_word = document.createElement("a");
+        a_word.style.display = "none";
+        a_word.href = "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," + resultadoAtual.arquivo_word;
+        a_word.download = `TIC-RQ-28 - Relatório de Nível de Serviço e Indicadores da Qualidade de Serviço ${date.toLocaleDateString('pt-BR')} (Rev07) Confidencial.docx`;
+        
+        document.body.appendChild(a_word);
+        a_word.click();
+        document.body.removeChild(a_word);
+        
+        showToast("success", "Relatório Word baixado com sucesso!");
     });
 });

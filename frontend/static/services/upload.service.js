@@ -1,3 +1,8 @@
+/**
+ * Communicates with the backend to upload the file for processing.
+ * @param {FormData} formData - The multipart form data containing the file.
+ * @returns {Promise<Object>} The JSON response from the server.
+ */
 export async function uploadArchive(formData) {
     const response = await fetch("/upload", {
         method: "POST",
@@ -5,7 +10,7 @@ export async function uploadArchive(formData) {
     });
 
     if (!response.ok) {
-        throw new Error("Erro do servidor.");
+        throw new Error("Server communication error.");
     }
 
     return response.json();
