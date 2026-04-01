@@ -2,6 +2,7 @@ import os
 import io
 import datetime
 import base64
+import datetime
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -54,7 +55,10 @@ def format_cell(cell, text, bold=False, color=None, font_size=7):
 def create_word_report(dados_dashboard):
     caminho_template = "template_netra.docx"
     doc = Document(caminho_template) if os.path.exists(caminho_template) else Document()
-
+    current_date = datetime.datetime.now()
+    month = current_date.month
+    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    ##
     if 'Normal' in doc.styles:
         doc.styles['Normal'].font.name = 'Verdana'
         doc.styles['Normal'].font.size = Pt(9)
@@ -89,7 +93,7 @@ def create_word_report(dados_dashboard):
     run_t.font.size = Pt(12)
     run_t.font.bold = True
     
-    for _ in range(4): doc.add_paragraph()
+    for _ in range(7): doc.add_paragraph()
     p_cli = doc.add_paragraph()
     p_cli.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_cli = p_cli.add_run("Cliente: Bahiagás")
@@ -97,9 +101,9 @@ def create_word_report(dados_dashboard):
     run_cli.font.size = Pt(11)
     run_cli.font.bold = True
     
-    for _ in range(3): doc.add_paragraph()
+    for _ in range(5): doc.add_paragraph()
     add_paragraph(doc, f"Emitido em: {current_date}").alignment = WD_ALIGN_PARAGRAPH.CENTER
-    add_paragraph(doc, "Período de apuração: [MÊS DE APURAÇÃO]").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    add_paragraph(doc, f"Período de apuração: {months[(month-2) % 12]}").alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_page_break()
 
     # --- SUMÁRIO ---
