@@ -8,3 +8,6 @@ python-multipart
 matplotlib
 python-docx
 google-genai
+xlrd
+aiofiles
+lxml
