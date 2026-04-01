@@ -299,7 +299,7 @@ def create_word_report(dados_dashboard):
     # --- 5. TREND ANALYSIS ---
     add_title(doc, '5. ANÁLISE DE TENDÊNCIAS', 1)
     p_tendencia = doc.add_paragraph()
-    run_tend = p_tendencia.add_run(ai_texts.get('dados_gerais', 'Standard trend analysis.'))
+    run_tend = p_tendencia.add_run(ai_texts.get('dados_gerais', 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?\n\nLorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?'))
     run_tend.font.name = 'Verdana'
     run_tend.font.size = Pt(9)
 

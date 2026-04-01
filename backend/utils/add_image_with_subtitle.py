@@ -13,6 +13,7 @@ def add_image_with_subtitle(doc, img_stream, caption, width_inches):
     
     p_leg = doc.add_paragraph()
     p_leg.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_leg.paragraph_format.line_spacing = 1.5
     run_leg = p_leg.add_run(caption)
     run_leg.font.name = 'Verdana'
     run_leg.font.size = Pt(9)
