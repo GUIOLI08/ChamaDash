@@ -55,9 +55,6 @@ def format_cell(cell, text, bold=False, color=None, font_size=7):
 def create_word_report(dados_dashboard):
     caminho_template = "template_netra.docx"
     doc = Document(caminho_template) if os.path.exists(caminho_template) else Document()
-    current_date = datetime.datetime.now()
-    month = current_date.month
-    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     ##
     if 'Normal' in doc.styles:
         doc.styles['Normal'].font.name = 'Verdana'
@@ -73,6 +70,9 @@ def create_word_report(dados_dashboard):
 
     ai_texts = consult_ia(dados_dashboard)
     current_date = datetime.datetime.now().strftime("%d/%m/%Y")
+    current_month = datetime.datetime.now().month
+    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    previous_month = months[current_month - 2]
 
     for section in doc.sections:
         for p in section.footer.paragraphs:
@@ -103,7 +103,7 @@ def create_word_report(dados_dashboard):
     
     for _ in range(5): doc.add_paragraph()
     add_paragraph(doc, f"Emitido em: {current_date}").alignment = WD_ALIGN_PARAGRAPH.CENTER
-    add_paragraph(doc, f"Período de apuração: {months[(month-2) % 12]}").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    add_paragraph(doc, f"Período de apuração: {previous_month}").alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_page_break()
 
     # --- SUMÁRIO ---
