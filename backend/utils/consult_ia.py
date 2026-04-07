@@ -1,6 +1,12 @@
+from google.auth import api_key
 from typing import Any, Dict
 from google import genai
 from config.ia import CONFIG_IA
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+api_key = os.getenv("API_KEY")
 
 def consult_ia(dados_resumo: Dict[str, Any]) -> Dict[str, str]:
     """
@@ -14,11 +20,12 @@ def consult_ia(dados_resumo: Dict[str, Any]) -> Dict[str, str]:
     Returns:
         Dict[str, str]: Dicionário com as chaves 'introduction' e 'data_analysis' contendo os textos gerados.
     """
-    # Verifica se a chave de API é válida ou se ainda é o placeholder padrão
-    if not CONFIG_IA["api_key"] or CONFIG_IA["api_key"] == "AIzaSyCpNMi0u5Zc1c7Bq6mL9fyAKtMzCR3Cmos":
+    
+    # Verifica se a chave de API é válida
+    if not CONFIG_IA["api_key"] or CONFIG_IA["api_key"] == "SUA_CHAVE_AQUI" or CONFIG_IA["api_key"] == "YOUR_API_KEY_HERE":
         return {
-            "introduction": "[IA DESATIVADA] - Funcionalidade em desenvolvimento...",
-            "data_analysis": "[IA DESATIVADA] - Funcionalidade em desenvolvimento..."
+            "introduction": "[IA DESATIVADA] - Erro ao tentar gerar a introdução.",
+            "data_analysis": "[IA DESATIVADA] - Erro ao tentar gerar a análise de dados."
         }
 
     try:

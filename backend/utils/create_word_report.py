@@ -117,6 +117,7 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
 
     # Consulta textos dinâmicos via Inteligência Artificial
     ai_texts = consult_ia(dados_dashboard)
+
     current_date = datetime.datetime.now().strftime("%d/%m/%Y")
     current_month = datetime.datetime.now().month
     months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
@@ -364,6 +365,8 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
     run_tend = p_tendencia.add_run(texto_tendencia if texto_tendencia else "Análise de tendências não disponível no momento.")
     run_tend.font.name = 'Verdana'
     run_tend.font.size = Pt(9)
+
+    doc.add_page_break()
 
     # --- 6. ANEXOS ---
     add_title(doc, '6. ANEXOS', 1)
