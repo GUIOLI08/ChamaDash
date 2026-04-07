@@ -26,6 +26,7 @@ export async function handleSubmit(event, elements, setResultado) {
     submitBtn.textContent = "";
     submitBtn.classList.add("loading");
     submitBtn.disabled = true;
+    submitBtn.style.cursor = "not-allowed";
 
     try {
         const resultado = await uploadArchive(formData);
@@ -47,5 +48,6 @@ export async function handleSubmit(event, elements, setResultado) {
         submitBtn.classList.remove("loading");
         submitBtn.textContent = "Enviar";
         submitBtn.disabled = false;
+        submitBtn.style.cursor = "pointer";
     }
 }

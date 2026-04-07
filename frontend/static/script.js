@@ -24,9 +24,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Listen for file selection changes to update UI label
     elements.fileInput.addEventListener("change", () => {
-        if (elements.fileInput.files.length > 0) {
+
+        const file = elements.fileInput.files[0];
+        if(!file.name.endsWith(".slk") && !file.name.endsWith(".csv") && !file.name.endsWith(".xlsx")) {
+            showToast("error", "Formato de arquivo não suportado.");
+            elements.fileInput.value = "";
+            return;
+        }
+
+        if (file) {
             elements.selectedArchive.textContent =
-                `Arquivo: ${elements.fileInput.files[0].name}`;
+                `Arquivo: ${file.name}`;
         } else {
             elements.selectedArchive.textContent =
                 "Formatos suportados: .slk, .csv, .xlsx";
