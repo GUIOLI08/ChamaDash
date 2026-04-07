@@ -1,16 +1,24 @@
+from typing import Any, Dict
 from google import genai
-
 from config.ia import CONFIG_IA
 
-def consult_ia(dados_resumo):
+def consult_ia(dados_resumo: Dict[str, Any]) -> Dict[str, str]:
     """
-    Connects with the AI provider to generate report introductions and data analyses.
-    If the API key is not configured (placeholder value), returns preset static text.
+    Conecta-se com o provedor de IA para gerar introduções de relatórios e análises de dados.
+
+    Se a chave da API não estiver configurada (valor de placeholder), retorna textos estáticos predefinidos.
+
+    Args:
+        dados_resumo (Dict[str, Any]): Dicionário contendo os dados sumarizados do dashboard (SLA, tipos, etc).
+
+    Returns:
+        Dict[str, str]: Dicionário com as chaves 'introduction' e 'data_analysis' contendo os textos gerados.
     """
+    # Verifica se a chave de API é válida ou se ainda é o placeholder padrão
     if not CONFIG_IA["api_key"] or CONFIG_IA["api_key"] == "AIzaSyCpNMi0u5Zc1c7Bq6mL9fyAKtMzCR3Cmos":
         return {
-            "introduction": "[IA DESATIVADA] - Insira sua chave API no código para gerar a introdução automática.",
-            "data_analysis": "[IA DESATIVADA] - Insira sua chave API no código para gerar a análise de dados automática."
+            "introduction": "[IA DESATIVADA] - Funcionalidade em desenvolvimento...",
+            "data_analysis": "[IA DESATIVADA] - Funcionalidade em desenvolvimento..."
         }
 
     try:
@@ -19,8 +27,8 @@ def consult_ia(dados_resumo):
             
             prompt = f"""
             Você é um gerente de TI analisando resultados de Service Desk. Analise estes dados:
-            - SLA de Atendimento: {dados_resumo['sla']}
-            - Distribuição por Tipo: {dados_resumo['tipos_gerais']}
+            - SLA de Atendimento: {dados_resumo.get('sla', 'N/A')}
+            - Distribuição por Tipo: {dados_resumo.get('tipos_gerais', 'N/A')}
             
             Escreva um relatório executivo formal e direto. Retorne a resposta ESTRITAMENTE neste formato, usando as tags:
             
@@ -38,13 +46,15 @@ def consult_ia(dados_resumo):
             
             raw_response = response.text
             
-            # Parse the AI response using markers defined in the prompt
-            introduction = raw_response.split("[INTRODUCAO]")[1].split("[DADOS_GERAIS]")[0].strip() if "[INTRODUCAO]" in raw_response else "Error generating introduction."
-            data_analysis = raw_response.split("[DADOS_GERAIS]")[1].strip() if "[DADOS_GERAIS]" in raw_response else "Error generating analysis."
+            # Analisa a resposta da IA usando os marcadores definidos no prompt
+            introduction = raw_response.split("[INTRODUCAO]")[1].split("[DADOS_GERAIS]")[0].strip() if "[INTRODUCAO]" in raw_response else "Erro ao gerar a introdução."
+            data_analysis = raw_response.split("[DADOS_GERAIS]")[1].strip() if "[DADOS_GERAIS]" in raw_response else "Erro ao gerar a análise."
             
             return {"introduction": introduction, "data_analysis": data_analysis}
             
     except Exception as e:
-        # Logging error and returning a safe fallback to prevent server crash
-        print(f"⚠️ Error consulting AI: {e}")
+        # Log de erro e retorno de um fallback seguro para evitar crash no servidor
+        print(f"⚠️ Erro ao consultar a IA: {e}")
         return {"introduction": "Erro na IA.", "data_analysis": f"Detalhe do erro: {e}"}
+    
+    return {"introduction": "Provedor de IA não suportado.", "data_analysis": "N/A"}

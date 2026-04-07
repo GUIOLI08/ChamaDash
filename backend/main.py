@@ -2,6 +2,8 @@ import os
 import io
 import base64
 import traceback
+from typing import Any, Dict, Optional
+
 import pandas as pd
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, Request, HTTPException
@@ -12,45 +14,68 @@ from fastapi.staticfiles import StaticFiles
 from utils.clean_and_fix_text import clean_and_fix_text
 from utils.create_word_report import create_word_report
 
-app = FastAPI()
+# Inicialização da aplicação FastAPI
+app = FastAPI(title="ChamaDash API", description="API para processamento de chamados e geração de relatórios.")
 
+# Configuração de diretórios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
+# Montagem de arquivos estáticos e templates
 app.mount("/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")), name="static")
-
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/", response_class=HTMLResponse)
-async def initial_page(request: Request):
+async def initial_page(request: Request) -> HTMLResponse:
+    """
+    Renderiza a página inicial do ChamaDash.
+
+    Args:
+        request (Request): O objeto da requisição FastAPI.
+
+    Returns:
+        HTMLResponse: A página HTML de índice.
+    """
     return templates.TemplateResponse(request, "index.html")
 
 @app.post("/upload")
-async def upload_file(archive: UploadFile = File(...)):
+async def upload_file(archive: UploadFile = File(...)) -> JSONResponse:
     """
-    Main entry point for file uploads.
-    Supports .xlsx, .xls, .slk, and .csv formats.
-    Performs data cleaning, merging, and generates both Excel and Word reports.
+    Ponto de entrada principal para o upload e processamento de arquivos de chamados.
+
+    Suporta os formatos .xlsx, .xls, .slk e .csv. Realiza a limpeza de dados,
+    agrupamento de duplicatas e gera relatórios em Excel e Word.
+
+    Args:
+        archive (UploadFile): O arquivo enviado pelo usuário.
+
+    Returns:
+        JSONResponse: Um objeto JSON contendo os dados do dashboard e os arquivos gerados em Base64.
+    
+    Raises:
+        HTTPException: Se houver erro no processamento ou o formato for inválido.
     """
     try:
         name = archive.filename.lower()
         content = await archive.read()
-        print(f"Reading file: {name}")
+        print(f"Lendo arquivo: {name}")
 
+        # --- LEITURA DE ARQUIVOS ---
         if name.endswith(".xlsx"):
-            print("Processing .xlsx file...")
+            print("Processando arquivo .xlsx...")
             tabela = pd.read_excel(io.BytesIO(content), engine="openpyxl")
         elif name.endswith(".xls"):
-            print("Processing .xls file...")
+            print("Processando arquivo .xls...")
             tabela = pd.read_excel(io.BytesIO(content), engine="xlrd")
         elif name.endswith(".slk"):
-            print("Processing .slk file...")
+            print("Processando arquivo .slk...")
             texto_slk = content.decode("latin-1", errors="ignore")
             dados_slk = {}
             linha_atual = 1
             col_atual = 1
 
+            # Parser manual básico para arquivos SYLK (.slk)
             for linha_texto in texto_slk.splitlines():
                 if linha_texto.startswith("C;") or linha_texto.startswith("F;"):
                     k_val = None
@@ -87,11 +112,12 @@ async def upload_file(archive: UploadFile = File(...)):
             tabela.columns = df_bruto.iloc[0].values
             
         elif name.endswith(".csv"):
-            print("Reading .csv file...")
+            print("Lendo arquivo .csv...")
             sucesso = False
             encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']
             separators = [';', ',', '\t', '|']
             
+            # Tenta prever encoding e separador do CSV
             for enc in encodings:
                 for sep in separators:
                     try:
@@ -102,7 +128,7 @@ async def upload_file(archive: UploadFile = File(...)):
                         if len(tabela_temp.columns) > 3:
                             tabela = tabela_temp
                             sucesso = True
-                            print(f"CSV read successfully! Encoding: {enc} | Separator: '{sep}'")
+                            print(f"CSV lido com sucesso! Encoding: {enc} | Separador: '{sep}'")
                             break
                     except Exception:
                         continue
@@ -110,11 +136,12 @@ async def upload_file(archive: UploadFile = File(...)):
                     break
                     
             if not sucesso:
-                raise ValueError("The CSV file seems to be empty or corrupted.")
+                raise ValueError("O arquivo CSV parece estar vazio ou corrompido.")
         else:
-            raise HTTPException(status_code=400, detail="Invalid file type")
+            raise HTTPException(status_code=400, detail="Tipo de arquivo inválido.")
 
-        print("Cleaning invalid characters and HTML tags...")
+        # --- LIMPEZA DE DADOS ---
+        print("Limpando caracteres inválidos e tags HTML...")
         tabela.columns = [str(col) for col in tabela.columns]
         tabela.columns = [clean_and_fix_text(col) or f"Coluna_Vazia_{i}" for i, col in enumerate(tabela.columns)]
         
@@ -122,7 +149,8 @@ async def upload_file(archive: UploadFile = File(...)):
         for col in colunas_de_texto:
             tabela[col] = tabela[col].astype(str).apply(clean_and_fix_text)
 
-        print("Merging duplicate tickets by ID...")
+        # --- AGRUPAMENTO DE CHAMADOS ---
+        print("Mesclando chamados duplicados por ID...")
         coluna_id = "ID"
 
         if coluna_id in tabela.columns:
@@ -131,6 +159,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 if col == coluna_id:
                     continue
                 elif str(tabela[col].dtype) in ["object", "string"]:
+                    # Concatena textos de chamados duplicados em uma única célula
                     funcoes_de_agrupamento[col] = lambda x: "\n---\n".join(
                         [v for v in pd.Series(x).astype(str).unique() if v not in ("", "nan", "None")]
                     )
@@ -141,7 +170,8 @@ async def upload_file(archive: UploadFile = File(...)):
                 funcoes_de_agrupamento
             )
 
-        print("Building Dashboard Excel file...")
+        # --- GERAÇÃO DO ARQUIVO EXCEL ---
+        print("Construindo arquivo Excel do Dashboard...")
         output = io.BytesIO()
 
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -149,6 +179,7 @@ async def upload_file(archive: UploadFile = File(...)):
             workbook = writer.book
             aba_dados = writer.sheets["Dados GLPI"]
 
+            # Formatação de quebra de texto nas colunas de dados
             formato_texto_quebrado = workbook.add_format({"text_wrap": True, "valign": "top"})
             for col_idx, col_name in enumerate(tabela.columns):
                 if not tabela.empty:
@@ -160,17 +191,19 @@ async def upload_file(archive: UploadFile = File(...)):
                 largura_ideal = min(tamanho_maximo + 2, 60)
                 aba_dados.set_column(col_idx, col_idx, largura_ideal, formato_texto_quebrado)
 
+            # --- ABA DASHBOARD (EXCEL) ---
             aba_dash = workbook.add_worksheet("📊 DASHBOARD")
             aba_motor = workbook.add_worksheet("Motor_Oculto")
             aba_motor.hide()
 
-            # Move Dashboard sheet to the first position
+            # Move a aba de Dashboard para a primeira posição
             workbook.worksheets_objs.insert(
                 0,
                 workbook.worksheets_objs.pop(workbook.worksheets_objs.index(aba_dash)),
             )
             aba_dash.hide_gridlines(2)
 
+            # Estilos de formatação para o Dashboard
             formato_titulo = workbook.add_format({"bold": True, "font_size": 22, "font_color": "#1f497d"})
             fmt_cabecalho_top = workbook.add_format({
                 "bold": True, "bg_color": "#244062", "font_color": "white",
@@ -197,6 +230,7 @@ async def upload_file(archive: UploadFile = File(...)):
             linha_inicio = 6
             col_matriz = 2
 
+            # Cabeçalho da Matriz de Chamados
             aba_dash.merge_range(
                 linha_inicio - 2, col_matriz, linha_inicio - 2, col_matriz + 12,
                 "📊 MATRIZ GERAL DE CHAMADOS E DESEMPENHO (SLA)", fmt_cabecalho_top,
@@ -216,7 +250,8 @@ async def upload_file(archive: UploadFile = File(...)):
             for c_idx, nome_col in enumerate(colunas_sub):
                 aba_dash.write(linha_sub, col_matriz + c_idx, nome_col, fmt_cabecalho_sub)
 
-            def agrupar_prioridade(p):
+            def agrupar_prioridade(p: Any) -> str:
+                """Normaliza os nomes das prioridades para agrupamento."""
                 p = str(p).lower()
                 if "baixa" in p or "baixo" in p:
                     return "Baixa"
@@ -239,11 +274,13 @@ async def upload_file(archive: UploadFile = File(...)):
             tipos_gerais = {}; inc_prio = {}; req_prio = {}; top_cat = {}; top_setor = {}; grupos_dict = {}; sla_dict = {}; todos_tec = {}
             matriz_sla_dict = {}
 
+            # Preenchimento das linhas da Matriz de SLA no Excel
             for tipo_glpi, tipo_nome in tipos_para_tabela:
                 if col_tipo and col_sla:
                     df_tipo = tabela[tabela[col_tipo] == tipo_glpi]
 
-                    def calc_prio(df, prioridade):
+                    def calc_prio(df: pd.DataFrame, prioridade: str) -> tuple:
+                        """Calcula métricas de SLA por prioridade."""
                         df_p = df[df["Prio_Agrupada"] == prioridade]
                         no_prazo = len(df_p[df_p[col_sla] == "Não"])
                         fora = len(df_p[df_p[col_sla] == "Sim"])
@@ -264,15 +301,16 @@ async def upload_file(archive: UploadFile = File(...)):
                     dados_linha = [tipo_nome, qtd_total, b_no, b_fora, b_ans, m_no, m_fora, m_ans, a_no, a_fora, a_ans, t_no, t_fora]
                     matriz_sla_dict[tipo_nome] = [qtd_total, b_no, b_fora, b_ans, m_no, m_fora, m_ans, a_no, a_fora, a_ans, t_no, t_fora]
                     for i, valor in enumerate(dados_linha):
-                        col_atual = col_matriz + i
+                        col_at = col_matriz + i
                         if i == 0:
-                            aba_dash.write(linha_dados, col_atual, valor, fmt_cel_esq)
+                            aba_dash.write(linha_dados, col_at, valor, fmt_cel_esq)
                         elif i in [4, 7, 10]:
-                            aba_dash.write(linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
+                            aba_dash.write(linha_dados, col_at, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
                         else:
-                            aba_dash.write(linha_dados, col_atual, valor, fmt_cel_centro)
+                            aba_dash.write(linha_dados, col_at, valor, fmt_cel_centro)
                     linha_dados += 1
 
+            # Cálculo dos Totais Gerais da Matriz
             t_b_no = totais_gerais["baixa_no"]; t_b_fora = totais_gerais["baixa_fora"]
             t_m_no = totais_gerais["media_no"]; t_m_fora = totais_gerais["media_fora"]
             t_a_no = totais_gerais["alta_no"]; t_a_fora = totais_gerais["alta_fora"]
@@ -289,12 +327,12 @@ async def upload_file(archive: UploadFile = File(...)):
             ]
             matriz_sla_dict["Total"] = [totais_gerais["qtd"], t_b_no, t_b_fora, t_b_ans, t_m_no, t_m_fora, t_m_ans, t_a_no, t_a_fora, t_a_ans, t_no_total, t_fora_total]
             for i, valor in enumerate(linha_total):
-                col_atual = col_matriz + i
-                if i == 0: aba_dash.write(linha_dados, col_atual, valor, fmt_cabecalho_sub)
-                elif i in [4, 7, 10]: aba_dash.write(linha_dados, col_atual, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
-                else: aba_dash.write(linha_dados, col_atual, valor, fmt_cabecalho_sub)
+                col_at = col_matriz + i
+                if i == 0: aba_dash.write(linha_dados, col_at, valor, fmt_cabecalho_sub)
+                elif i in [4, 7, 10]: aba_dash.write(linha_dados, col_at, valor, fmt_ans if valor >= 0.8 else fmt_ans_ruim)
+                else: aba_dash.write(linha_dados, col_at, valor, fmt_cabecalho_sub)
 
-            # --- EXCEL CHARTS GENERATION ---
+            # --- GERAÇÃO DE GRÁFICOS NO EXCEL ---
             if col_tipo:
                 counts = tabela[col_tipo].dropna().value_counts()
                 aba_motor.write_column("A1", counts.index); aba_motor.write_column("B1", counts.values)
@@ -311,6 +349,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 tipos_gerais = counts.to_dict()
 
             if col_tipo and "Prio_Agrupada" in tabela.columns:
+                # Gráfico de Incidentes
                 counts_inc = tabela[tabela[col_tipo] == "Incidente"]["Prio_Agrupada"].dropna().value_counts()
                 aba_motor.write_column("D1", counts_inc.index); aba_motor.write_column("E1", counts_inc.values)
                 g_inc = workbook.add_chart({"type": "pie"})
@@ -325,6 +364,7 @@ async def upload_file(archive: UploadFile = File(...)):
                 aba_dash.insert_chart("H14", g_inc, {"x_offset": 5})
                 inc_prio = counts_inc.to_dict()
 
+                # Gráfico de Solicitações
                 counts_req = tabela[tabela[col_tipo] == "Requisição"]["Prio_Agrupada"].dropna().value_counts()
                 aba_motor.write_column("G1", counts_req.index); aba_motor.write_column("H1", counts_req.values)
                 g_req = workbook.add_chart({"type": "pie"})
@@ -339,19 +379,20 @@ async def upload_file(archive: UploadFile = File(...)):
                 aba_dash.insert_chart("M14", g_req, {"x_offset": 5})
                 req_prio = counts_req.to_dict()
 
-            def desenhar_tabela(aba, linha_ini, col_ini, col_span, titulo_geral, titulo_col1, serie_dados):
+            def desenhar_tabela(aba: Any, linha_ini: int, col_ini: int, col_span: int, titulo_geral: str, titulo_col1: str, serie_dados: pd.Series) -> None:
+                """Função utilitária para desenhar micro-tabelas de ranking no Excel."""
                 col_fim_nome = col_ini + col_span - 1
                 col_qtd = col_ini + col_span
                 aba.merge_range(linha_ini, col_ini, linha_ini, col_qtd, titulo_geral, fmt_cabecalho_top)
                 if col_span > 1: aba.merge_range(linha_ini + 1, col_ini, linha_ini + 1, col_fim_nome, titulo_col1, fmt_cabecalho_sub)
                 else: aba.write(linha_ini + 1, col_ini, titulo_col1, fmt_cabecalho_sub)
                 aba.write(linha_ini + 1, col_qtd, "Qtd", fmt_cabecalho_sub)
-                l_atual = linha_ini + 2
-                for index, valor in serie_dados.items():
-                    if col_span > 1: aba.merge_range(l_atual, col_ini, l_atual, col_fim_nome, str(index), fmt_cel_esq)
-                    else: aba.write(l_atual, col_ini, str(index), fmt_cel_esq)
-                    aba.write(l_atual, col_qtd, valor, fmt_cel_centro)
-                    l_atual += 1
+                l_at = linha_ini + 2
+                for idx, valor in serie_dados.items():
+                    if col_span > 1: aba.merge_range(l_at, col_ini, l_at, col_fim_nome, str(idx), fmt_cel_esq)
+                    else: aba.write(l_at, col_ini, str(idx), fmt_cel_esq)
+                    aba.write(l_at, col_qtd, valor, fmt_cel_centro)
+                    l_at += 1
 
             if "Categoria" in tabela.columns:
                 cat_counts = tabela["Categoria"].dropna().value_counts().head(10)
@@ -387,6 +428,7 @@ async def upload_file(archive: UploadFile = File(...)):
 
             linha_s3 = 54
             
+            # Rankings de Usuários e Técnicos
             col_usuario = 'Requerente' if 'Requerente' in tabela.columns else ('Usuário' if 'Usuário' in tabela.columns else None)
             if col_usuario:
                 top_usu = tabela[col_usuario].dropna().value_counts().head(10)
@@ -426,6 +468,7 @@ async def upload_file(archive: UploadFile = File(...)):
         output.seek(0)
         excel_b64 = base64.b64encode(output.getvalue()).decode("utf-8")
 
+        # Estrutura de dados para o relatório Word e retorno da API
         dados_dashboard = {
             "tipos_gerais": {str(k): int(v) for k, v in tipos_gerais.items()},
             "inc_prio": {str(k): int(v) for k, v in inc_prio.items()},
@@ -439,12 +482,13 @@ async def upload_file(archive: UploadFile = File(...)):
             "matriz_sla": matriz_sla_dict
         }
         
-        print("Generating report with AI and Word graphics...")
+        # GERAÇÃO DO RELATÓRIO WORD VIA IA
+        print("Gerando relatório com IA e gráficos no Word...")
         word_b64 = create_word_report(dados_dashboard)
 
         return JSONResponse(
             content={
-                "mensagem": "Chamadash gerado com sucesso!",
+                "mensagem": "ChamaDash gerado com sucesso!",
                 "dados": dados_dashboard,
                 "arquivo_excel": excel_b64,
                 "arquivo_word": word_b64
@@ -452,17 +496,18 @@ async def upload_file(archive: UploadFile = File(...)):
         )
 
     except Exception as e:
-        print("\n=== DETAILED ERROR ===")
+        print("\n=== ERRO DETALHADO NO BACKEND ===")
         traceback.print_exc()
-        print("======================\n")
+        print("=================================\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/ping")
-def ping():
+def ping() -> Dict[str, str]:
+    """Retorna o status da API."""
     return {"status": "ok"}
-
 if __name__ == "__main__":
-    import os
+    # Configuração de execução local (Porta dinâmica para deploy)
     port = int(os.environ.get("PORT", 8000))
-    print(f"ChamaDash running on port {port}")
+    print(f"ChamaDash rodando na porta {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
+

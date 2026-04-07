@@ -1,8 +1,9 @@
+from docx.enum.table import WD_ALIGN_VERTICAL
+from typing import Any, Dict
 import os
 import io
 import datetime
 import base64
-import datetime
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -15,22 +16,41 @@ from .add_title import add_title
 from .add_paragraph import add_paragraph
 from .add_image_with_subtitle import add_image_with_subtitle
 
-def shade_cell(cell, fill_color):
-    """Pinta o fundo da célula apagando cores anteriores (Garante o Título visível)"""
+def shade_cell(cell: Any, fill_color: str) -> None:
+    """
+    Pinta o fundo de uma célula da tabela, removendo cores anteriores.
+
+    Args:
+        cell (docx.table._Cell): A célula da tabela a ser colorida.
+        fill_color (str): A cor de fundo em formato hexadecimal (ex: "244062").
+
+    Returns:
+        None
+    """
     tcPr = cell._tc.get_or_add_tcPr()
     shd = tcPr.find(qn('w:shd'))
-    if shd is not None: tcPr.remove(shd)
+    if shd is not None: 
+        tcPr.remove(shd)
     shd = OxmlElement('w:shd')
     shd.set(qn('w:val'), 'clear')
     shd.set(qn('w:color'), 'auto')
     shd.set(qn('w:fill'), fill_color)
     tcPr.append(shd)
 
-def set_cell_borders(cell):
-    """Injeta XML bruto para desenhar uma borda preta forte em todas as células"""
+def set_cell_borders(cell: Any) -> None:
+    """
+    Aplica bordas pretas sólidas em todos os lados de uma célula da tabela via XML.
+
+    Args:
+        cell (docx.table._Cell): A célula da tabela que receberá as bordas.
+
+    Returns:
+        None
+    """
     tcPr = cell._tc.get_or_add_tcPr()
     tcBorders = tcPr.find(qn('w:tcBorders'))
-    if tcBorders is not None: tcPr.remove(tcBorders)
+    if tcBorders is not None: 
+        tcPr.remove(tcBorders)
     tcBorders = OxmlElement('w:tcBorders')
     for edge in ('top', 'left', 'bottom', 'right'):
         border = OxmlElement(f'w:{edge}')
@@ -41,21 +61,48 @@ def set_cell_borders(cell):
         tcBorders.append(border)
     tcPr.append(tcBorders)
 
-def format_cell(cell, text, bold=False, color=None, font_size=7):
-    """Escreve e formata o texto da tabela"""
+def format_cell(cell: Any, text: str, bold: bool = False, color: RGBColor = None, font_size: int = 7, vertical_align: bool = False) -> None:
+    """
+    Escreve e formata o texto dentro de uma célula da tabela.
+
+    Args:
+        cell (docx.table._Cell): A célula onde o texto será escrito.
+        text (str): O conteúdo de texto.
+        bold (bool, opcional): Se o texto deve ser negrito. O padrão é False.
+        color (docx.shared.RGBColor, opcional): A cor da fonte. O padrão é None.
+        font_size (int, opcional): O tamanho da fonte em pontos. O padrão é 7.
+
+    Returns:
+        None
+    """
     cell.text = str(text)
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER if vertical_align else WD_ALIGN_VERTICAL.BOTTOM
     p = cell.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.runs[0]
     run.font.name = 'Verdana'
     run.font.size = Pt(font_size)
-    if bold: run.font.bold = True
-    if color: run.font.color.rgb = color
+    if bold: 
+        run.font.bold = True
+    if color: 
+        run.font.color.rgb = color
 
-def create_word_report(dados_dashboard):
+def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
+    """
+    Gera o relatório completo em formato Word (.docx) baseado nos dados do dashboard.
+
+    O processo inclui a geração de tabelas de SLA, gráficos via IA e formatação complexa.
+
+    Args:
+        dados_dashboard (Dict[str, Any]): Dicionário completo com as métricas do dashboard.
+
+    Returns:
+        str: O arquivo Word codificado em Base64 para download.
+    """
     caminho_template = "template_netra.docx"
     doc = Document(caminho_template) if os.path.exists(caminho_template) else Document()
-    ##
+    
+    # Configuração de estilos padrão do documento
     if 'Normal' in doc.styles:
         doc.styles['Normal'].font.name = 'Verdana'
         doc.styles['Normal'].font.size = Pt(9)
@@ -68,12 +115,16 @@ def create_word_report(dados_dashboard):
             doc.styles[style_name].paragraph_format.space_before = Pt(18)
             doc.styles[style_name].paragraph_format.space_after = Pt(10)
 
+    # Consulta textos dinâmicos via Inteligência Artificial
     ai_texts = consult_ia(dados_dashboard)
     current_date = datetime.datetime.now().strftime("%d/%m/%Y")
     current_month = datetime.datetime.now().month
     months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    
+    # Define o mês de apuração (mês anterior ao atual)
     previous_month = months[current_month - 2]
 
+    # Atualiza rodapés com a data atual e código do documento
     for section in doc.sections:
         for p in section.footer.paragraphs:
             if "TIC-RQ-28" in p.text or "Relatório" in p.text:
@@ -132,9 +183,11 @@ def create_word_report(dados_dashboard):
         
     doc.add_page_break()
 
-    # --- 1. INTRODUCTION ---
+    # --- 1. INTRODUÇÃO ---
     add_title(doc, '1. INTRODUÇÃO', 1)
-    add_paragraph(doc, ai_texts.get('introducao', 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?\n\nLorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?'))
+    # Tenta usar o texto da IA, caso contrário usa um fallback
+    texto_intro = ai_texts.get('introduction') or ai_texts.get('introducao')
+    add_paragraph(doc, texto_intro if texto_intro else "Introdução automática não gerada.")
     doc.add_page_break()
     
     # --- 2. SLA (MATRIZ GERAL) ---
@@ -151,25 +204,25 @@ def create_word_report(dados_dashboard):
         col.width = larguras[i]
         for cell in col.cells:
             cell.width = larguras[i]
-            set_cell_borders(cell) # <-- FORÇA A BORDA PRETA EM TODAS AS CÉLULAS
+            set_cell_borders(cell) # Força a borda preta em todas as células
             
     cor_branca = RGBColor(255, 255, 255)
-    cor_preta = RGBColor(0, 0, 0) # <-- GARANTE LEITURA NOS DADOS
+    cor_preta = RGBColor(0, 0, 0)
     
     # Linha 0 (Título da Tabela)
     t_sla.cell(0,0).merge(t_sla.cell(0,12))
-    format_cell(t_sla.cell(0,0), "📊 MATRIZ GERAL DE CHAMADOS E DESEMPENHO (SLA)", bold=True, color=cor_branca, font_size=8)
+    format_cell(t_sla.cell(0,0), "MATRIZ GERAL DE CHAMADOS E DESEMPENHO", bold=True, color=cor_branca, font_size=8, vertical_align=True)
     shade_cell(t_sla.cell(0,0), "244062")
 
-    # Linha 1 (Grupos)
+    # Linha 1 (Grupos por Prioridade)
     headers_r1 = [(0,1,"Chamados"), (2,4,"Baixa"), (5,7,"Média"), (8,10,"Alta"), (11,12,"Total")]
     for c_start, c_end, text in headers_r1:
         c = t_sla.cell(1, c_start)
         c.merge(t_sla.cell(1, c_end))
-        format_cell(c, text, bold=True, color=cor_branca, font_size=8)
+        format_cell(c, text, bold=True, color=cor_branca, font_size=8, vertical_align=True)
         shade_cell(c, "244062")
 
-    # Linha 2 (Cabeçalhos)
+    # Linha 2 (Cabeçalhos das Colunas)
     headers_r2 = ["Tipos", "Qtd", "No Prazo", "Fora", "ANS", "No Prazo", "Fora", "ANS", "No Prazo", "Fora", "ANS", "No Prazo", "Fora"]
     for idx, h in enumerate(headers_r2):
         format_cell(t_sla.cell(2, idx), h, bold=True, color=cor_branca, font_size=6)
@@ -178,21 +231,22 @@ def create_word_report(dados_dashboard):
     matriz_sla = dados_dashboard.get("matriz_sla", {})
     tipos = ["Incidentes", "Solicitações", "Problemas", "Total"]
     
-    # Linhas de Dados (Textos FORÇADOS para PRETO)
+    # Preenchimento das Linhas de Dados da Matriz SLA
     for r_idx, tipo in enumerate(tipos, start=3):
         is_bold = (r_idx == 6)
-        format_cell(t_sla.cell(r_idx, 0), tipo, bold=is_bold, color=cor_preta, font_size=7)
+        format_cell(t_sla.cell(r_idx, 0), tipo, bold=is_bold, color=cor_preta, font_size=7, vertical_align=True)
         valores = matriz_sla.get(tipo, ["-"] * 12)
         
         for c_idx in range(1, 13):
             val = valores[c_idx - 1]
             if val != "-" and c_idx in [4, 7, 10]:
-                try: val_str = f"{float(val)*100:.0f}%"
-                except: val_str = str(val)
+                try: 
+                    val_str = f"{float(val)*100:.0f}%"
+                except: 
+                    val_str = str(val)
             else:
                 val_str = str(val)
             
-            # Aqui é onde o texto fica preto!
             format_cell(t_sla.cell(r_idx, c_idx), val_str, bold=is_bold, color=cor_preta, font_size=7)
 
     p_tab = doc.add_paragraph()
@@ -206,7 +260,9 @@ def create_word_report(dados_dashboard):
     # --- 3. RESULTADOS APURADOS ---
     add_title(doc, '3. RESULTADOS APURADOS DOS SERVIÇOS', 1)
     add_title(doc, '3.1 DADOS GERAIS', 2)
-    add_paragraph(doc, ai_texts.get('dados_gerais', 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?\n\nLorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?'))
+    
+    texto_dados_gerais = ai_texts.get('data_analysis') or ai_texts.get('dados_gerais')
+    add_paragraph(doc, texto_dados_gerais if texto_dados_gerais else "Análise de dados não gerada automaticamente.")
     
     add_title(doc, '3.1.1 Percentual de chamados registrados por tipo', 3)
     doc.paragraphs[-1].paragraph_format.keep_with_next = False 
@@ -219,7 +275,7 @@ def create_word_report(dados_dashboard):
 
     doc.add_page_break()
 
-    # --- 3.1.2 GRAFICOS LADO A LADO COM TAMANHO IDENTICO ---
+    # --- 3.1.2 GRÁFICOS DE PRIORIDADE ---
     add_title(doc, '3.1.2 Percentual de Incidentes e Solicitações de Serviços registradas por prioridade relatada', 3)
     doc.paragraphs[-1].paragraph_format.keep_with_next = False 
     
@@ -231,27 +287,27 @@ def create_word_report(dados_dashboard):
         tab_graf.autofit = False
         tab_graf.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        # Travando a tabela pra garantir que ninguém espichará a imagem
+        # Travando a tabela pra garantir largura fixa das imagens
         for cell in tab_graf.columns[0].cells: cell.width = Inches(3.2)
         for cell in tab_graf.columns[1].cells: cell.width = Inches(3.2)
         
-        # Célula Esquerda
+        # Célula Esquerda (Incidentes)
         c_esq = tab_graf.cell(0, 0)
         p_esq = c_esq.paragraphs[0]
         p_esq.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r_esq = p_esq.add_run()
-        r_esq.add_picture(img_inc, width=Inches(3.0)) # <-- Exatamente iguais
+        r_esq.add_picture(img_inc, width=Inches(3.0)) 
         p_sub_esq = c_esq.add_paragraph("Gráfico 2: Incidentes por prioridade")
         p_sub_esq.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_sub_esq.runs[0].font.name = 'Verdana'
         p_sub_esq.runs[0].font.size = Pt(8)
         
-        # Célula Direita
+        # Célula Direita (Solicitações)
         c_dir = tab_graf.cell(0, 1)
         p_dir = c_dir.paragraphs[0]
         p_dir.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r_dir = p_dir.add_run()
-        r_dir.add_picture(img_req, width=Inches(3.0)) # <-- Exatamente iguais
+        r_dir.add_picture(img_req, width=Inches(3.0)) 
         p_sub_dir = c_dir.add_paragraph("Gráfico 3: Solicitações por prioridade")
         p_sub_dir.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_sub_dir.runs[0].font.name = 'Verdana'
@@ -263,7 +319,7 @@ def create_word_report(dados_dashboard):
                     p.paragraph_format.line_spacing = 1.0
                     p.paragraph_format.space_after = Pt(0)
 
-    # --- 3.1.3 Chart for Demanding Areas ---
+    # --- 3.1.3 ATENDIMENTOS POR ÁREA ---
     add_title(doc, '3.1.3 Atendimentos por área demandante', 3)
     doc.paragraphs[-1].paragraph_format.keep_with_next = False
     
@@ -300,18 +356,22 @@ def create_word_report(dados_dashboard):
         img_cat = generate_image_graphic(dados_dashboard['top_categorias'], 'Chamados por Categoria', 'bar')
         add_image_with_subtitle(doc, img_cat, "Gráfico 5: Chamados abertos por categoria", 4.5)
 
-    # --- 5. TREND ANALYSIS ---
+    # --- 5. ANÁLISE DE TENDÊNCIAS ---
     add_title(doc, '5. ANÁLISE DE TENDÊNCIAS', 1)
     p_tendencia = doc.add_paragraph()
-    run_tend = p_tendencia.add_run(ai_texts.get('dados_gerais', 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?\n\nLorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur soluta optio nemo omnis, minima similique quasi sit pariatur fuga blanditiis asperiores ab illum non iusto accusantium perferendis officia corporis quibusdam?'))
+    # Utiliza a análise da IA para esta seção também (ou uma combinação)
+    texto_tendencia = ai_texts.get('data_analysis') or ai_texts.get('dados_gerais')
+    run_tend = p_tendencia.add_run(texto_tendencia if texto_tendencia else "Análise de tendências não disponível no momento.")
     run_tend.font.name = 'Verdana'
     run_tend.font.size = Pt(9)
 
-    # --- 6. ATTACHMENTS ---
-    add_title(doc, 'Anexos', 1)
+    # --- 6. ANEXOS ---
+    add_title(doc, '6. ANEXOS', 1)
     add_paragraph(doc, 'Insira aqui evidências ou imagens complementares da Central Telefônica ou outros sistemas.')
 
     word_output = io.BytesIO()
     doc.save(word_output)
     word_output.seek(0)
+    
+    # Retorna o arquivo convertido em Base64 para ser enviado via JSON
     return base64.b64encode(word_output.getvalue()).decode("utf-8")

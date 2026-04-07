@@ -1,11 +1,20 @@
+from typing import Optional
 import re
 import html
 import pandas as pd
 
-def clean_and_fix_text(text):
+def clean_and_fix_text(text: Optional[str]) -> str:
     """
-    Cleans and fixes encoding issues in the provided text.
-    Handles null values, removes HTML tags, and corrects common Brazilian character encoding errors.
+    Limpa e corrige problemas de codificação no texto fornecido.
+
+    Lida com valores nulos, remove tags HTML e corrige erros comuns de codificação 
+    de caracteres brasileiros (UTF-8/Latin-1).
+
+    Args:
+        text (Optional[str]): O texto original que precisa de limpeza.
+
+    Returns:
+        str: O texto limpo e corrigido. Retorna uma string vazia se o input for inválido.
     """
     try:
         if text is None:
@@ -16,15 +25,15 @@ def clean_and_fix_text(text):
         pass
 
     text = str(text)
-    # Check for empty or placeholder strings
+    # Verifica se a string está vazia ou contém marcadores de valor nulo
     if text.strip() in ("", "nan", "None", "NaN", "NaT"):
         return ""
 
     try:
-        # Attempt to fix double encoding issues common in legacy exports
+        # Tenta corrigir problemas de "double encoding" comuns em exportações Legacy
         text = text.encode('latin-1').decode('utf-8')
     except (UnicodeEncodeError, UnicodeDecodeError):
-        # Fallback to manual correction for common broken character sequences
+        # Fallback para correção manual de sequências de caracteres quebrados comuns
         corrections = {
             'Ãš': 'Ú', 'Ã§': 'ç', 'Ã£': 'ã', 'Ã©': 'é', 
             'Ã\xad': 'í', 'Ãª': 'ê', 'Ã¡': 'á', 'Ãµ': 'õ', 
@@ -35,11 +44,11 @@ def clean_and_fix_text(text):
         for wrong, right in corrections.items():
             text = text.replace(wrong, right)
 
-    # Decode HTML entities and strip tags
+    # Decodifica entidades HTML e remove tags
     text = html.unescape(text)
     text = re.sub(r'<[^>]+>', ' ', text)
-    # Normalize whitespace
+    # Normaliza espaços em branco
     text = re.sub(r'\s+', ' ', text).strip()
     text = text.strip('"').strip("'")
 
-    return text
+    return text
