@@ -106,7 +106,7 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
     if 'Normal' in doc.styles:
         doc.styles['Normal'].font.name = 'Verdana'
         doc.styles['Normal'].font.size = Pt(9)
-        doc.styles['Normal'].paragraph_format.space_after = Pt(6) 
+        doc.styles['Normal'].paragraph_format.space_after = Pt(6)
         doc.styles['Normal'].paragraph_format.line_spacing = 1.5 
 
     for i in range(1, 4):
@@ -188,7 +188,10 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
     add_title(doc, '1. INTRODUÇÃO', 1)
     # Tenta usar o texto da IA, caso contrário usa um fallback
     texto_intro = ai_texts.get('introduction') or ai_texts.get('introducao')
-    add_paragraph(doc, texto_intro if texto_intro else "Introdução automática não gerada.")
+    p_intro = doc.add_paragraph()
+    p_intro.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_intro.paragraph_format.first_line_indent = Inches(0.5)
+    run_intro = p_intro.add_run(texto_intro if texto_intro else "Introdução automática não gerada.")
     doc.add_page_break()
     
     # --- 2. SLA (MATRIZ GERAL) ---
@@ -263,7 +266,10 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
     add_title(doc, '3.1 DADOS GERAIS', 2)
     
     texto_dados_gerais = ai_texts.get('data_analysis') or ai_texts.get('dados_gerais')
-    add_paragraph(doc, texto_dados_gerais if texto_dados_gerais else "Análise de dados não gerada automaticamente.")
+    p_dados_gerais = doc.add_paragraph()
+    p_dados_gerais.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_dados_gerais.paragraph_format.first_line_indent = Inches(0.5)
+    run_dados_gerais = p_dados_gerais.add_run(texto_dados_gerais if texto_dados_gerais else "Análise de dados não gerada automaticamente.")
     
     add_title(doc, '3.1.1 Percentual de chamados registrados por tipo', 3)
     doc.paragraphs[-1].paragraph_format.keep_with_next = False 
@@ -359,12 +365,11 @@ def create_word_report(dados_dashboard: Dict[str, Any]) -> str:
 
     # --- 5. ANÁLISE DE TENDÊNCIAS ---
     add_title(doc, '5. ANÁLISE DE TENDÊNCIAS', 1)
-    p_tendencia = doc.add_paragraph()
-    # Utiliza a análise da IA para esta seção também (ou uma combinação)
     texto_tendencia = ai_texts.get('data_analysis') or ai_texts.get('dados_gerais')
+    p_tendencia = doc.add_paragraph()
+    p_tendencia.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_tendencia.paragraph_format.first_line_indent = Inches(0.5)
     run_tend = p_tendencia.add_run(texto_tendencia if texto_tendencia else "Análise de tendências não disponível no momento.")
-    run_tend.font.name = 'Verdana'
-    run_tend.font.size = Pt(9)
 
     doc.add_page_break()
 

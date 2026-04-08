@@ -58,11 +58,12 @@ def consult_ia(dados_resumo: Dict[str, Any]) -> Dict[str, str]:
             data_analysis = raw_response.split("[DADOS_GERAIS]")[1].strip() if "[DADOS_GERAIS]" in raw_response else "Erro ao gerar a análise."
             
             return {"introduction": introduction, "data_analysis": data_analysis}
-            
+
     except Exception as e:
         # Log de erro e retorno de um fallback seguro para evitar crash no servidor
-        print(f"⚠️ Erro ao consultar a IA: {e}")
-        return {"introduction": "Foi detectado um erro durante a geração da introdução. Tente novamente, caso o erro persista, entre em contato com o suporte técnico.", "data_analysis": "Foi detectado um erro durante a geração da análise de dados. Tente novamente, caso o erro persista, entre em contato com o suporte técnico."}
-    
+        error_code = getattr(e, 'code', 'Erro desconhecido')
+        print(f"\nErro ao consultar a IA.\n // Código: {error_code}\n // Mensagem: {getattr(e, 'message', 'Erro desconhecido')}\n // Status: {getattr(e, 'status', 'Erro desconhecido')}\n")
+        return {"introduction": f"Foi detectado um erro durante a geração da introdução. Tente novamente, caso o erro persista, entre em contato com o suporte técnico. ({error_code})", "data_analysis": f"Foi detectado um erro durante a geração da análise de dados. Tente novamente, caso o erro persista, entre em contato com o suporte técnico. ({error_code})"}
+        
     print(f"Erro ao consultar a IA. Se o processo chegou até aqui, provavelmente ocorreu um erro na identificação/configuração do provedor da IA.")
     return {"introduction": "Foi detectado um erro durante a geração da introdução. Tente novamente, caso o erro persista, entre em contato com o suporte técnico.", "data_analysis": "Foi detectado um erro durante a geração da análise de dados. Tente novamente, caso o erro persista, entre em contato com o suporte técnico."}
