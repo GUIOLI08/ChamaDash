@@ -62,6 +62,7 @@ def consult_ia(dados_resumo: Dict[str, Any]) -> Dict[str, str]:
     except Exception as e:
         # Log de erro e retorno de um fallback seguro para evitar crash no servidor
         print(f"⚠️ Erro ao consultar a IA: {e}")
-        return {"introduction": "Erro na IA.", "data_analysis": f"Detalhe do erro: {e}"}
+        return {"introduction": "Foi detectado um erro durante a geração da introdução. Tente novamente, caso o erro persista, entre em contato com o suporte técnico.", "data_analysis": "Foi detectado um erro durante a geração da análise de dados. Tente novamente, caso o erro persista, entre em contato com o suporte técnico."}
     
-    return {"introduction": "Provedor de IA não suportado.", "data_analysis": "N/A"}
+    print(f"Erro ao consultar a IA. Se o processo chegou até aqui, provavelmente ocorreu um erro na identificação/configuração do provedor da IA.")
+    return {"introduction": "Foi detectado um erro durante a geração da introdução. Tente novamente, caso o erro persista, entre em contato com o suporte técnico.", "data_analysis": "Foi detectado um erro durante a geração da análise de dados. Tente novamente, caso o erro persista, entre em contato com o suporte técnico."}
