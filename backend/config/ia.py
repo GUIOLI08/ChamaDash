@@ -14,5 +14,5 @@ api_key = os.getenv("API_KEY")
 CONFIG_IA = {
     "provider": "gemini",
     "api_key": api_key,
-    "model": "gemini-2.5-flash"  # Versão estável do modelo para resultados consistentes
+    "model": "gemini-3-flash"  # Versão estável do modelo para resultados consistentes
 }
