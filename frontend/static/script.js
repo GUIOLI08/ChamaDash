@@ -2,17 +2,18 @@ import { handleSubmit } from "./controllers/dashboard.controller.js";
 import { showToast } from "./components/toast.js";
 
 /**
- * Main application entry point for the frontend.
- * Orchestrates event listeners and DOM element management.
+ * Ponto de entrada principal da aplicação frontend.
+ * Orquestra os ouvintes de eventos e o gerenciamento dos elementos do DOM.
  */
 document.addEventListener("DOMContentLoaded", () => {
 
     let resultadoAtual = null;
 
-    // Centralized DOM element references
+    // Referências centralizadas dos elementos do DOM
     const elements = {
         mainDiv: document.querySelectorAll(".mainDiv"),
         form: document.getElementById("uploadForm"),
+        labelFileUpload: document.querySelector(".label-file-upload"),
         fileInput: document.getElementById("fileInput"),
         selectedArchive: document.getElementById("selected_archive"),
         submitBtn: document.querySelector(".submit-button"),
@@ -22,10 +23,37 @@ document.addEventListener("DOMContentLoaded", () => {
         btnNewFile: document.getElementById("btnNewFile"),
     };
 
-    // Listen for file selection changes to update UI label
+    // Previne o comportamento padrão do navegador para eventos de drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+        elements.labelFileUpload.addEventListener(e, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    elements.labelFileUpload.addEventListener('dragenter', () => {
+        elements.labelFileUpload.classList.add('dragging');
+    });
+
+    elements.labelFileUpload.addEventListener('dragleave', () => {
+        elements.labelFileUpload.classList.remove('dragging');
+    });
+
+    elements.labelFileUpload.addEventListener('drop', (e) => {
+        elements.labelFileUpload.classList.remove('dragging');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            elements.fileInput.files = files;   
+            elements.fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Monitora alterações na seleção de arquivos para atualizar o rótulo da interface
     elements.fileInput.addEventListener("change", () => {
 
         const file = elements.fileInput.files[0];
+
         if(!file.name.endsWith(".slk") && !file.name.endsWith(".csv") && !file.name.endsWith(".xlsx")) {
             showToast("error", "Formato de arquivo não suportado.");
             elements.fileInput.value = "";
@@ -41,21 +69,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Delegate form submission to controller
+    // Delega a submissão do formulário para o controlador
     elements.form.addEventListener("submit", (event) =>
         handleSubmit(event, elements, (resultado) => {
             resultadoAtual = resultado;
         })
     );
 
-    // Reset view for a new file upload
+    // Reseta a visualização para um novo upload de arquivo
     elements.btnNewFile.addEventListener("click", () => {
         elements.dashboard.classList.remove("active");
         elements.fileInput.value = "";
         
         elements.selectedArchive.textContent = "Formatos suportados: .slk, .csv, .xlsx";
         
-        // Ensure all chart instances are disposed to free resources
+        // Garante que todas as instâncias de gráficos sejam destruídas para liberar recursos
         for (let id in Chart.instances) {
             Chart.instances[id].destroy();
         }
@@ -63,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.mainDiv.forEach(div => div.style.display = "flex");
     });
 
-    // Handle Excel download blob
+    // Lida com o download do arquivo Excel (blob)
     elements.btnDownloadExcel.addEventListener("click", () => {
         if (!resultadoAtual) return;
 
@@ -79,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.removeChild(a);
     });
 
-    // Handle Word Report download blob
+    // Lida com o download do relatório Word (blob)
     elements.btnGenReport.addEventListener("click", () => {
         if (!resultadoAtual || !resultadoAtual.arquivo_word) {
             showToast("error", "Nenhum relatório gerado.");

@@ -1,10 +1,11 @@
 import { createChart } from "../components/createChart.js";
 
 /**
- * Orchestrates the rendering of all dashboard charts.
+ * Orquestra a renderização de todos os gráficos do dashboard.
  * 
- * @param {Object} resultado - The API response containing chart data.
- * @param {Object} elements - The DOM element collection.
+ * Args:
+ *     resultado (Object): A resposta da API contendo os dados do gráfico.
+ *     elements (Object): Coleção de elementos do DOM.
  */
 export function renderDashboard(resultado, elements) {
     
@@ -12,10 +13,10 @@ export function renderDashboard(resultado, elements) {
 
     const { mainDiv, dashboard } = elements;
 
-    // Hide placeholder/initial views
+    // Oculta visualizações iniciais/placeholder
     mainDiv.forEach(div => div.style.display = "none");
 
-    // Initialize all metrics charts
+    // Inicializa todos os gráficos de métricas
     createChart("pie", "graficoTipo", resultado.dados.tipos_gerais);
     createChart("pie", "graficoIncidentes", resultado.dados.inc_prio);
     createChart("pie", "graficoSolicitacoes", resultado.dados.req_prio);
@@ -24,6 +25,6 @@ export function renderDashboard(resultado, elements) {
     createChart("pie", "graficoTecnicos", resultado.dados.grupos_tecnicos);
     createChart("pie", "graficoSLA", resultado.dados.sla_geral);
 
-    // Show dashboard container
+    // Exibe o contêiner do dashboard
     dashboard.classList.add("active");
 }

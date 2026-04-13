@@ -1,6 +1,6 @@
 /**
- * Component to display toast notifications for user feedback.
- * Standardizes the look and feel of success, warning, and error messages.
+ * Componente para exibir notificações toast para feedback do usuário.
+ * Padroniza a aparência das mensagens de sucesso, aviso e erro.
  */
 const toastContainer = document.querySelector(".toastContainer");
 const toastAdvise = document.getElementById("toastAdvise");
@@ -15,16 +15,18 @@ const TOAST_TYPES = {
 let toastTimeout;
 
 /**
- * Shows a toast message with specified type and content.
- * @param {string} type - 'success', 'warning', or 'error'.
- * @param {string} message - The message text to display (localized in Portuguese).
+ * Exibe uma mensagem toast com o tipo e conteúdo especificados.
+ *
+ * Args:
+ *     type (string): 'success', 'warning' ou 'error'.
+ *     message (string): O texto da mensagem a ser exibida.
  */
 export function showToast(type, message) {
     if (toastTimeout) clearTimeout(toastTimeout);
 
-    // Reset animation for repeated triggers
+    // Reseta a animação para gatilhos repetidos
     toastContainer.style.animation = "none";
-    toastContainer.offsetHeight; // trigger reflow
+    toastContainer.offsetHeight; // força o reflow
     toastContainer.style.animation = "";
 
     const config = TOAST_TYPES[type] || TOAST_TYPES.success;
@@ -35,7 +37,7 @@ export function showToast(type, message) {
     toastAdvise.textContent = message;
     toastContainer.style.display = "flex";
 
-    // Auto-hide toast after 5 seconds
+    // Oculta automaticamente o toast após 5 segundos
     toastTimeout = setTimeout(() => {
         toastContainer.style.display = "none";
     }, 5000);

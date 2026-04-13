@@ -1,11 +1,12 @@
 /**
- * Creates and renders a Chart.js chart on a canvas element.
+ * Cria e renderiza um gráfico Chart.js em um elemento canvas.
  * 
- * @param {string} type - The chart type ('pie', 'bar', etc.)
- * @param {string} canvasId - The ID of the target canvas element.
- * @param {Object} data - The data object where keys are labels and values are numbers.
- * @param {string} color - The primary color for bar charts.
- * @param {boolean} isScrollable - Whether the chart container should be scrollable (useful for many bars).
+ * Args:
+ *     type (string): O tipo do gráfico ('pie', 'bar', etc.)
+ *     canvasId (string): O ID do elemento canvas de destino.
+ *     data (Object): Objeto de dados onde as chaves são rótulos e os valores são números.
+ *     color (string): A cor primária para gráficos de barras.
+ *     isScrollable (boolean): Se o contêiner do gráfico deve permitir rolagem (útil para muitas barras).
  */
 export function createChart(type, canvasId, data, color, isScrollable = false) {
     const canvasElement = document.getElementById(canvasId);
@@ -14,7 +15,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
     const fullLabels = Object.keys(data);
     const values = Object.values(data);
 
-    // Dynamic height adjustment for scrollable bar charts to prevent overlapping
+    // Ajuste dinâmico de altura para gráficos de barras roláveis para evitar sobreposição
     if (isScrollable && type === "bar") {
         const minHeight = Math.max(320, fullLabels.length * 35);
         canvasElement.style.height = `${minHeight}px`;
@@ -22,7 +23,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
         canvasElement.style.height = "100%";
     }
 
-    // Cleanup existing chart instance before re-rendering to avoid memory leaks or visual artifacts
+    // Limpa a instância existente do gráfico antes de renderizar novamente para evitar vazamentos de memória ou artefatos visuais
     const existingChart = Chart.getChart(canvasId);
     if (existingChart) existingChart.destroy();
 
@@ -89,7 +90,7 @@ export function createChart(type, canvasId, data, color, isScrollable = false) {
                                 font: { size: 12, family: "'SN Pro', sans-serif" },
                                 callback: function (value) {
                                     let label = this.getLabelForValue(value);
-                                    // Truncate long labels for better readability
+                                // Trunca rótulos longos para melhor legibilidade
                                     return label.length > 22
                                         ? label.substring(0, 22) + "..."
                                         : label;

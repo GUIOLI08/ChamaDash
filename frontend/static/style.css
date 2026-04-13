@@ -73,6 +73,23 @@ form {
     user-select: none;
 }
 
+.label-file-upload.dragging {
+    border-color: var(--button);
+    background-color: rgba(0, 123, 255, 0.08);
+    transform: scale(1.02);
+}
+
+.label-file-upload.dragging input,
+.label-file-upload.dragging p,
+.label-file-upload.dragging span,
+.label-file-upload.dragging .upload-icon{
+    pointer-events: none;
+}
+
+.label-file-upload.dragging .upload-icon{
+    background-color: transparent;
+}
+
 #upload-icon {
     display: flex;
     align-items: center;

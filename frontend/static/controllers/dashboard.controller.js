@@ -3,8 +3,13 @@ import { showToast } from "../components/toast.js";
 import { renderDashboard } from "../ui/dashboard.ui.js";
 
 /**
- * Handles the dashboard generation submission.
- * Manages button loading state, file selection validation, and UI updates.
+ * Lida com a submissão para geração do dashboard.
+ * Gerencia o estado de carregamento do botão, validação da seleção de arquivo e atualizações da interface.
+ *
+ * Args:
+ *     event (Event): O evento de submissão do formulário.
+ *     elements (Object): Coleção de elementos do DOM.
+ *     setResultado (Function): Função de retorno para armazenar o resultado do processamento.
  */
 export async function handleSubmit(event, elements, setResultado) {
     event.preventDefault();
@@ -13,7 +18,7 @@ export async function handleSubmit(event, elements, setResultado) {
 
     const file = fileInput.files[0];
 
-    // User-facing validation
+    // Validação voltada para o usuário
     if (!file) {
         showToast("warning", "Por favor, selecione um arquivo válido.");
         return;
@@ -22,7 +27,7 @@ export async function handleSubmit(event, elements, setResultado) {
     const formData = new FormData();
     formData.append("archive", file);
 
-    // Enter loading state
+    // Entra em estado de carregamento
     submitBtn.textContent = "";
     submitBtn.classList.add("loading");
     submitBtn.disabled = true;
@@ -39,12 +44,12 @@ export async function handleSubmit(event, elements, setResultado) {
         
         showToast("success", "ChamaDash gerado com sucesso!");
     } catch (error) {
-        // Log technical error for developers
-        console.error("Dashboard processing error:", error);
-        // Display user-friendly error in Portuguese
+        // Registra erro técnico para desenvolvedores
+        console.error("Erro no processamento do dashboard:", error);
+        // Exibe erro amigável ao usuário em português
         showToast("error", "Erro ao processar o arquivo!");
     } finally {
-        // Reset loading state
+        // Reseta o estado de carregamento
         submitBtn.classList.remove("loading");
         submitBtn.textContent = "Enviar";
         submitBtn.disabled = false;
