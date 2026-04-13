@@ -54,6 +54,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const file = elements.fileInput.files[0];
 
+        if (!file) {
+            elements.selectedArchive.textContent =
+                "Formatos suportados: .slk, .csv, .xlsx";
+            return;
+        }
+
         if(!file.name.endsWith(".slk") && !file.name.endsWith(".csv") && !file.name.endsWith(".xlsx")) {
             showToast("error", "Formato de arquivo não suportado.");
             elements.fileInput.value = "";
